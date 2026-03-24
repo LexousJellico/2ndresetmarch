@@ -22,6 +22,7 @@ interface BookingServiceInterface
 
     /**
      * Return counts of bookings grouped by booking_status, respecting filters other than booking_status.
+     *
      * @param array<string, mixed> $filters
      * @return array{all:int,pending:int,active:int,confirmed:int,cancelled:int,declined:int,completed:int}
      */
@@ -30,13 +31,19 @@ interface BookingServiceInterface
     /** Automatically recompute and persist the payment_status based on services total and completed payments. */
     public function recalculatePaymentStatus(Booking $booking): void;
 
+    /** Sync all non-cancelled bookings to their automatic lifecycle status. Returns the number of changed rows. */
+    public function syncLifecycleStatuses(): int;
+
+    /** Sync one booking to its automatic lifecycle status. Returns true when the status changed. */
+    public function syncLifecycleStatus(Booking $booking): bool;
+
     /**
      * Daily availability for one date in the window 06:00–23:59.
      * Only confirmed/active bookings are treated as busy.
      *
      * @return array{
      *   date:string,
-     *   window:array{from:string,to:string},
+     *   window?:array{from:string,to:string},
      *   busy:array<int,array{from:string,to:string,id?:int}>,
      *   free:array<int,array{from:string,to:string}>,
      *   blocks:array{

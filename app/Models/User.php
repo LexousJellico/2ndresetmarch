@@ -2,24 +2,23 @@
 
 namespace App\Models;
 
-// use Illuminate\Contracts\Auth\MustVerifyEmail;
+use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Fortify\TwoFactorAuthenticatable;
 use Spatie\Permission\Traits\HasRoles;
-use App\Models\UserNotification;
-use Illuminate\Database\Eloquent\Relations\HasMany;
 
-class User extends Authenticatable
+class User extends Authenticatable implements MustVerifyEmail
 {
-    /** @use HasFactory<\Database\Factories\UserFactory> */
-    use HasFactory, Notifiable, TwoFactorAuthenticatable, HasRoles;
+    use HasFactory;
+    use Notifiable;
+    use TwoFactorAuthenticatable;
+    use HasRoles;
 
     /**
-     * The attributes that are mass assignable.
-     *
-     * @var list<string>
+     * @var array<int, string>
      */
     protected $fillable = [
         'name',
@@ -28,20 +27,15 @@ class User extends Authenticatable
     ];
 
     /**
-     * The attributes that should be hidden for serialization.
-     *
-     * @var list<string>
+     * @var array<int, string>
      */
     protected $hidden = [
         'password',
         'remember_token',
+        'two_factor_recovery_codes',
+        'two_factor_secret',
     ];
 
-    /**
-     * Get the attributes that should be cast.
-     *
-     * @return array<string, string>
-     */
     protected function casts(): array
     {
         return [
@@ -51,19 +45,18 @@ class User extends Authenticatable
         ];
     }
 
-    public function notifications()
+    public function notifications(): HasMany
     {
-    return $this->hasMany(UserNotification::class, 'user_id');
+        return $this->hasMany(UserNotification::class, 'user_id');
     }
-    
-    public function bookingsCreated()
+
+    public function bookingsCreated(): HasMany
     {
-    return $this->hasMany(\App\Models\Booking::class, 'created_by_user_id');
+        return $this->hasMany(Booking::class, 'created_by_user_id');
     }
 
     public function bookingViews(): HasMany
     {
-        return $this->hasMany(\App\Models\BookingView::class, 'user_id');
+        return $this->hasMany(BookingView::class, 'user_id');
     }
-
 }

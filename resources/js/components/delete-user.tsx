@@ -1,120 +1,96 @@
-import ProfileController from '@/actions/App/Http/Controllers/Settings/ProfileController';
+import { FormEvent, useRef, useState } from 'react';
+import { router, useForm } from '@inertiajs/react';
 import HeadingSmall from '@/components/heading-small';
 import InputError from '@/components/input-error';
 import { Button } from '@/components/ui/button';
 import {
-    Dialog,
-    DialogClose,
-    DialogContent,
-    DialogDescription,
-    DialogFooter,
-    DialogTitle,
-    DialogTrigger,
+  Dialog,
+  DialogClose,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogTitle,
+  DialogTrigger,
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Form } from '@inertiajs/react';
-import { useRef } from 'react';
 
 export default function DeleteUser() {
-    const passwordInput = useRef<HTMLInputElement>(null);
+  const passwordInput = useRef<HTMLInputElement | null>(null);
+  const [open, setOpen] = useState(false);
 
-    return (
-        <div className="space-y-6">
-            <HeadingSmall
-                title="Delete account"
-                description="Delete your account and all of its resources"
-            />
-            <div className="space-y-4 rounded-lg border border-red-100 bg-red-50 p-4 dark:border-red-200/10 dark:bg-red-700/10">
-                <div className="relative space-y-0.5 text-red-600 dark:text-red-100">
-                    <p className="font-medium">Warning</p>
-                    <p className="text-sm">
-                        Please proceed with caution, this cannot be undone.
-                    </p>
-                </div>
+  const { data, setData, delete: destroy, processing, reset, errors, clearErrors } = useForm({
+    password: '',
+  });
 
-                <Dialog>
-                    <DialogTrigger asChild>
-                        <Button
-                            variant="destructive"
-                            data-test="delete-user-button"
-                        >
-                            Delete account
-                        </Button>
-                    </DialogTrigger>
-                    <DialogContent>
-                        <DialogTitle>
-                            Are you sure you want to delete your account?
-                        </DialogTitle>
-                        <DialogDescription>
-                            Once your account is deleted, all of its resources
-                            and data will also be permanently deleted. Please
-                            enter your password to confirm you would like to
-                            permanently delete your account.
-                        </DialogDescription>
+  const closeModal = () => {
+    setOpen(false);
+    reset('password');
+    clearErrors();
+  };
 
-                        <Form
-                            {...ProfileController.destroy.form()}
-                            options={{
-                                preserveScroll: true,
-                            }}
-                            onError={() => passwordInput.current?.focus()}
-                            resetOnSuccess
-                            className="space-y-6"
-                        >
-                            {({ resetAndClearErrors, processing, errors }) => (
-                                <>
-                                    <div className="grid gap-2">
-                                        <Label
-                                            htmlFor="password"
-                                            className="sr-only"
-                                        >
-                                            Password
-                                        </Label>
+  const submit = (e: FormEvent) => {
+    e.preventDefault();
 
-                                        <Input
-                                            id="password"
-                                            type="password"
-                                            name="password"
-                                            ref={passwordInput}
-                                            placeholder="Password"
-                                            autoComplete="current-password"
-                                        />
+    destroy('/settings/profile', {
+      preserveScroll: true,
+      onSuccess: () => {
+        closeModal();
+      },
+      onError: () => {
+        passwordInput.current?.focus();
+      },
+    });
+  };
 
-                                        <InputError message={errors.password} />
-                                    </div>
+  return (
+    <div className="rounded-[2rem] border border-red-200 bg-red-50 p-6 dark:border-red-400/20 dark:bg-red-500/10">
+      <HeadingSmall
+        title="Delete account"
+        description="Once your account is deleted, all of its resources and data will also be permanently deleted."
+      />
 
-                                    <DialogFooter className="gap-2">
-                                        <DialogClose asChild>
-                                            <Button
-                                                variant="secondary"
-                                                onClick={() =>
-                                                    resetAndClearErrors()
-                                                }
-                                            >
-                                                Cancel
-                                            </Button>
-                                        </DialogClose>
+      <div className="mt-4">
+        <Dialog open={open} onOpenChange={setOpen}>
+          <DialogTrigger asChild>
+            <Button variant="destructive">Delete account</Button>
+          </DialogTrigger>
 
-                                        <Button
-                                            variant="destructive"
-                                            disabled={processing}
-                                            asChild
-                                        >
-                                            <button
-                                                type="submit"
-                                                data-test="confirm-delete-user-button"
-                                            >
-                                                Delete account
-                                            </button>
-                                        </Button>
-                                    </DialogFooter>
-                                </>
-                            )}
-                        </Form>
-                    </DialogContent>
-                </Dialog>
-            </div>
-        </div>
-    );
+          <DialogContent>
+            <DialogTitle>Are you sure you want to delete your account?</DialogTitle>
+            <DialogDescription>
+              Please enter your password to confirm you would like to permanently delete your account.
+            </DialogDescription>
+
+            <form onSubmit={submit} className="space-y-6">
+              <div className="grid gap-2">
+                <Label htmlFor="delete_password">Password</Label>
+                <Input
+                  id="delete_password"
+                  ref={passwordInput}
+                  type="password"
+                  value={data.password}
+                  onChange={(e) => setData('password', e.target.value)}
+                  placeholder="Password"
+                />
+                <InputError message={errors.password} className="mt-2" />
+              </div>
+
+              <DialogFooter className="gap-2">
+                <DialogClose asChild>
+                  <Button type="button" variant="outline" onClick={closeModal}>
+                    Cancel
+                  </Button>
+                </DialogClose>
+
+                <Button type="submit" variant="destructive" disabled={processing}>
+                  Delete account
+                </Button>
+              </DialogFooter>
+            </form>
+          </DialogContent>
+        </Dialog>
+      </div>
+    </div>
+  );
 }

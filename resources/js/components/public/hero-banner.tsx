@@ -1,73 +1,102 @@
 import { Link } from '@inertiajs/react';
-import { motion } from 'framer-motion';
 import { CalendarDays, MapPin, Sparkles, Trees } from 'lucide-react';
+import AvailabilityStrip from '@/components/public/availability-strip';
 
-export default function HeroBanner() {
-  return (
-    <section className="relative min-h-[94vh] overflow-hidden rounded-b-[42px]">
-      <div
-        className="absolute inset-0 bg-cover bg-center dark:hidden"
-        style={{ backgroundImage: "url('/marketing/images/hero/noon.png')" }}
-      />
-      <div
-        className="absolute inset-0 hidden bg-cover bg-center dark:block"
-        style={{ backgroundImage: "url('/marketing/images/hero/night.png')" }}
-      />
+type VenueOption = {
+    label: string;
+    value: string;
+    category?: string | null;
+    capacity?: string | null;
+};
 
-      <div className="absolute inset-0 bg-gradient-to-b from-black/25 via-black/25 to-black/45 dark:from-black/40 dark:via-black/40 dark:to-black/60" />
+interface HeroBannerProps {
+    venueOptions: VenueOption[];
+}
 
-      <div className="absolute inset-x-0 bottom-0 h-40 bg-gradient-to-t from-[#f4f1ea] to-transparent dark:from-[#4b4b4e]" />
+export default function HeroBanner({ venueOptions }: HeroBannerProps) {
+    return (
+        <section className="px-4 pt-4 lg:px-6">
+            <div className="mx-auto max-w-7xl overflow-hidden rounded-[2rem] border border-black/10 bg-white shadow-sm dark:border-white/10 dark:bg-[#16171b]">
+                <div className="relative overflow-hidden">
+                    <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,_rgba(39,99,73,0.18),_transparent_38%),radial-gradient(circle_at_top_right,_rgba(29,91,216,0.16),_transparent_35%),linear-gradient(135deg,_#f7f2e8_0%,_#ffffff_48%,_#eef4ff_100%)] dark:bg-[radial-gradient(circle_at_top_left,_rgba(101,160,131,0.16),_transparent_38%),radial-gradient(circle_at_top_right,_rgba(96,132,255,0.22),_transparent_35%),linear-gradient(135deg,_#121318_0%,_#171923_48%,_#111827_100%)]" />
+                    <div className="relative grid gap-8 px-6 py-8 lg:grid-cols-[1.1fr_0.9fr] lg:px-10 lg:py-12">
+                        <div className="space-y-6">
+                            <div className="inline-flex items-center gap-2 rounded-full border border-black/10 bg-white/80 px-4 py-2 text-xs font-black uppercase tracking-[0.18em] text-[#174f40] backdrop-blur dark:border-white/10 dark:bg-white/5 dark:text-[#9dc0ff]">
+                                <Trees className="h-4 w-4" />
+                                Breathe Baguio
+                            </div>
 
-      <div className="relative z-10 mx-auto flex min-h-[84vh] max-w-7xl flex-col justify-center px-4 pb-12 pt-16 text-white md:px-2">
-        <motion.div
-          initial={{ opacity: 0, y: 26 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.7 }}
-          className="max-w-4xl"
-        >
-          <div className="inline-flex items-center gap-1 ">
-            <div>
-              <img
-                src="/marketing/images/branding/breathe-light.png"
-                alt="Breathe Baguio"
-                className="h-[24rem] w-full rounded-[14px] md:h-[7rem]"
-              />
+                            <div className="space-y-4">
+                                <h1 className="max-w-3xl text-4xl font-black tracking-tight text-[#1f1b16] sm:text-5xl lg:text-6xl dark:text-white">
+                                    Baguio Convention &amp; Cultural Center
+                                </h1>
+
+                                <p className="text-lg font-semibold text-[#1d5bd8] dark:text-[#a9c4ff]">
+                                    Events Access &amp; Scheduling Engine
+                                </p>
+
+                                <p className="max-w-2xl text-sm leading-7 text-[#5b564f] sm:text-base dark:text-[#c8c8ce]">
+                                    A cleaner public experience where guests can instantly check venue availability,
+                                    explore public schedules, and move to the formal booking workflow using the same
+                                    backend availability logic.
+                                </p>
+                            </div>
+
+                            <div className="flex flex-wrap gap-3">
+                                <Link
+                                    href="/bookings/create"
+                                    className="inline-flex items-center gap-2 rounded-full bg-[#174f40] px-5 py-3 text-sm font-semibold text-white transition hover:-translate-y-0.5 hover:shadow-md dark:bg-[#2d47ff]"
+                                >
+                                    <CalendarDays className="h-4 w-4" />
+                                    Book Now
+                                </Link>
+
+                                <Link
+                                    href="/facilities"
+                                    className="inline-flex items-center gap-2 rounded-full border border-black/10 bg-white/80 px-5 py-3 text-sm font-semibold text-[#1f1b16] transition hover:-translate-y-0.5 hover:shadow-sm dark:border-white/10 dark:bg-white/5 dark:text-white"
+                                >
+                                    <MapPin className="h-4 w-4" />
+                                    Explore Spaces
+                                </Link>
+                            </div>
+
+                            <div className="grid gap-3 sm:grid-cols-3">
+                                <div className="rounded-2xl border border-black/10 bg-white/70 p-4 backdrop-blur dark:border-white/10 dark:bg-white/5">
+                                    <p className="flex items-center gap-2 text-xs font-black uppercase tracking-[0.14em] text-[#174f40] dark:text-[#9dc0ff]">
+                                        <Sparkles className="h-4 w-4" />
+                                        Real-time check
+                                    </p>
+                                    <p className="mt-2 text-sm text-[#5b564f] dark:text-[#c8c8ce]">
+                                        Same availability source used by booking and public display.
+                                    </p>
+                                </div>
+
+                                <div className="rounded-2xl border border-black/10 bg-white/70 p-4 backdrop-blur dark:border-white/10 dark:bg-white/5">
+                                    <p className="text-xs font-black uppercase tracking-[0.14em] text-[#174f40] dark:text-[#9dc0ff]">
+                                        Public visibility
+                                    </p>
+                                    <p className="mt-2 text-sm text-[#5b564f] dark:text-[#c8c8ce]">
+                                        Public events stay visible while private bookings remain protected.
+                                    </p>
+                                </div>
+
+                                <div className="rounded-2xl border border-black/10 bg-white/70 p-4 backdrop-blur dark:border-white/10 dark:bg-white/5">
+                                    <p className="text-xs font-black uppercase tracking-[0.14em] text-[#174f40] dark:text-[#9dc0ff]">
+                                        Venue-based
+                                    </p>
+                                    <p className="mt-2 text-sm text-[#5b564f] dark:text-[#c8c8ce]">
+                                        The venue picker now uses real spaces instead of an empty selector.
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="lg:pl-2">
+                            <AvailabilityStrip venueOptions={venueOptions} />
+                        </div>
+                    </div>
+                </div>
             </div>
-          </div>
-
-          <h1 className="text-4xl font-bold leading-tight md:text-4xl lg:text-7xl"
-              style={{ fontFamily: "Times New Roman, serif" }}
-            >
-            Baguio Convention & Cultural Center
-          </h1>
-
-          <p className="text-sm font-semibold uppercase tracking-[0.34em] text-white/80">
-            Events Access & Scheduling Engine
-          </p>
-
-          <p className="mt-6 max-w-2xl text-sm leading-7 text-white/90 md:text-base">
-            A premier civic and cultural destination where conferences, public
-            gatherings, exhibitions, and celebrations come alive in the heart of the
-            City of Pines.
-          </p>
-
-          <div className="mt-4 flex flex-col items-start gap-3 sm:flex-row sm:items-center">
-            <Link
-              href="/bookings/create"
-              className="inline-flex min-w-[180px] items-center justify-center rounded-full bg-[#12906a] px-6 py-3 text-sm font-semibold text-white shadow-xl transition hover:-translate-y-0.5 hover:shadow-2xl dark:bg-[#2d47ff]"
-            >
-              Book Now
-            </Link>
-
-            <Link
-              href="/facilities"
-              className="inline-flex min-w-[180px] items-center justify-center rounded-full border border-white/30 bg-white/12 px-6 py-3 text-sm font-semibold text-white backdrop-blur-md transition hover:bg-white/20"
-            >
-              Explore Spaces
-            </Link>
-          </div>
-        </motion.div>
-      </div>
-    </section>
-  );
+        </section>
+    );
 }

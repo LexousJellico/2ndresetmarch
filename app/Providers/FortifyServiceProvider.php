@@ -11,24 +11,31 @@ use Laravel\Fortify\Fortify;
 
 class FortifyServiceProvider extends ServiceProvider
 {
-    /**
-     * Register any application services.
-     */
     public function register(): void
     {
         //
     }
 
-    /**
-     * Bootstrap any application services.
-     */
     public function boot(): void
     {
-        Fortify::twoFactorChallengeView(fn () => Inertia::render('auth/two-factor-challenge'));
+        Fortify::loginView(fn () => Inertia::render('auth/login'));
+        Fortify::registerView(fn () => Inertia::render('auth/register'));
+        Fortify::requestPasswordResetLinkView(fn () => Inertia::render('auth/forgot-password'));
+        Fortify::resetPasswordView(fn (Request $request) => Inertia::render('auth/reset-password', [
+            'email' => (string) $request->email,
+            'token' => (string) $request->route('token'),
+        ]));
+        Fortify::verifyEmailView(fn () => Inertia::render('auth/verify-email'));
         Fortify::confirmPasswordView(fn () => Inertia::render('auth/confirm-password'));
 
+        RateLimiter::for('login', function (Request $request) {
+            $email = (string) $request->input('email', '');
+
+            return Limit::perMinute(5)->by($email.$request->ip());
+        });
+
         RateLimiter::for('two-factor', function (Request $request) {
-            return Limit::perMinute(5)->by($request->session()->get('login.id'));
+            return Limit::perMinute(5)->by((string) $request->session()->get('login.id'));
         });
     }
 }

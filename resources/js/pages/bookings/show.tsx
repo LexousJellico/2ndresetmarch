@@ -10,6 +10,8 @@ import { useState, useMemo, useEffect, useRef } from 'react';
 import { Badge } from '@/components/ui/badge';
 import BookingStatusBadge from '@/components/ui/booking-status-badge';
 import PaymentRowStatusBadge from '@/components/ui/payment-row-status-badge';
+import ConfirmActionDialog from '@/components/confirm-action-dialog';
+
 
 /* ----------------------------- helpers/types ----------------------------- */
 
@@ -426,6 +428,7 @@ function ZoomableImagePreview({
 /* --------------------------------- Page ---------------------------------- */
 
 export default function ShowBooking({ booking, services }: ShowBookingProps) {
+
   const { auth } = usePage<{ auth?: AuthLike | null }>().props;
 
   const roleNames = getRoleNames(auth).map((r) => r.toLowerCase());
@@ -457,6 +460,12 @@ export default function ShowBooking({ booking, services }: ShowBookingProps) {
         quantity: Math.max(1, Number(i.quantity ?? 1)),
       }))
     : [];
+
+  const [confirmRemoveItemOpen, setConfirmRemoveItemOpen] = useState(false);
+  
+  const [pendingRemoveServiceId, setPendingRemoveServiceId] = useState<number | null>(null);
+  
+  const [confirmSaveServicesOpen, setConfirmSaveServicesOpen] = useState(false);
 
   const [cart, setCart] = useState<CartItem[]>(initialItems);
   const [addServiceId, setAddServiceId] = useState<string>('');
@@ -494,6 +503,19 @@ export default function ShowBooking({ booking, services }: ShowBookingProps) {
   const removeCartItem = (service_id: number) => {
     if (isClient || isStaff) return; // ✅ staff cannot modify
     setCart((prev) => prev.filter((ci) => ci.service_id !== service_id));
+  };
+
+  const requestRemoveCartItem = (service_id: number) => {
+    if (isClient || isStaff) return;
+    setPendingRemoveServiceId(service_id);
+    setConfirmRemoveItemOpen(true);
+  };
+
+  const confirmRemoveCartItem = () => {
+    if (pendingRemoveServiceId === null) return;
+    removeCartItem(pendingRemoveServiceId);
+    setPendingRemoveServiceId(null);
+    setConfirmRemoveItemOpen(false);
   };
 
   const addCartItem = () => {
@@ -800,7 +822,7 @@ export default function ShowBooking({ booking, services }: ShowBookingProps) {
                                   variant="destructive"
                                   size="sm"
                                   disabled={staffReadOnly}
-                                  onClick={() => removeCartItem(i.service_id)}
+                                  onClick={() => requestRemoveCartItem(i.service_id)}
                                 >
                                   Remove
                                 </Button>
@@ -842,7 +864,7 @@ export default function ShowBooking({ booking, services }: ShowBookingProps) {
                 {/* Non-client sees Save; STAFF disabled */}
                 {!isClient && (
                   <div className="flex justify-end">
-                    <Button type="button" onClick={saveItems} disabled={processing || staffReadOnly}>
+                    <Button type="button" onClick={() => setConfirmSaveServicesOpen(true)} disabled={processing || staffReadOnly}>
                       Save services
                     </Button>
                   </div>
@@ -914,6 +936,36 @@ export default function ShowBooking({ booking, services }: ShowBookingProps) {
           </Card>
         </div>
       </div>
+      <ConfirmActionDialog
+    open={confirmRemoveItemOpen}
+    onOpenChange={(open) => {
+        setConfirmRemoveItemOpen(open);
+        if (!open) {
+            setPendingRemoveServiceId(null);
+        }
+    }}
+    title="Remove this service from the booking?"
+    description="This will remove the selected service line from the current booking editor."
+    confirmLabel="Remove"
+    cancelLabel="Keep it"
+    onConfirm={confirmRemoveCartItem}
+    variant="destructive"
+/>
+
+<ConfirmActionDialog
+    open={confirmSaveServicesOpen}
+    onOpenChange={setConfirmSaveServicesOpen}
+    title="Save service changes?"
+    description="This will update the service lines attached to the booking."
+    confirmLabel="Save changes"
+    cancelLabel="Review first"
+    onConfirm={() => {
+        saveItems();
+        setConfirmSaveServicesOpen(false);
+    }}
+    variant="default"
+/>
+
     </AppLayout>
   );
 }

@@ -11,6 +11,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 use Illuminate\Support\Facades\Schema;
 use App\Models\CalendarBlock;
+use App\Models\PublicEvent;
 
 class BookingService implements BookingServiceInterface
 {
@@ -69,8 +70,11 @@ class BookingService implements BookingServiceInterface
     }
 
     public function paginate(array $filters = [], int $perPage = 15): LengthAwarePaginator
-    {
-        $base = $this->baseBookingQuery()->with(['service', 'createdBy']);
+{
+    $this->syncLifecycleStatuses();
+
+    $base = $this->baseBookingQuery()->with(['service', 'createdBy']);
+
 
         if (Schema::hasTable('booking_views')) {
             $base->with(['views']);
@@ -277,6 +281,7 @@ class BookingService implements BookingServiceInterface
                 }
             }
 
+            $this->assertGuestCapacityForItems($guestCount, is_array($items) ? $items : []);
             $booking = Booking::create($data);
 
             if (is_array($items)) {
@@ -295,6 +300,9 @@ class BookingService implements BookingServiceInterface
     {
         return DB::transaction(function () use ($booking, $data) {
             $items = $data['items'] ?? null;
+            $extraSchedules = (array)($data['extra_schedules'] ?? []);
+            $guestCount = (int) ($data['number_of_guests'] ?? 0);
+
             unset($data['items'], $data['extra_schedules']);
 
             unset($data['created_by_user_id']);
@@ -336,6 +344,21 @@ class BookingService implements BookingServiceInterface
                 $data['booking_date_from'] = $from;
                 $data['booking_date_to']   = $to;
             }
+            $guestCount = array_key_exists('number_of_guests', $data)
+                ? (int) $data['number_of_guests']
+                : (int) $booking->number_of_guests;
+
+            $itemsForCapacity = is_array($items)
+                ? $items
+                : $booking->bookingServices()
+                    ->get(['service_id', 'quantity'])
+                    ->map(fn ($row) => [
+                    'service_id' => (int) $row->service_id,
+                    'quantity' => (int) $row->quantity,
+                ])
+            ->all();
+
+            $this->assertGuestCapacityForItems($guestCount, $itemsForCapacity);
 
             $booking->update($data);
 
@@ -355,8 +378,11 @@ class BookingService implements BookingServiceInterface
     }
 
     public function getStatusCounts(array $filters = []): array
-    {
-        $filtersNoStatus = $filters;
+{
+    $this->syncLifecycleStatuses();
+
+    $filtersNoStatus = $filters;
+
         unset($filtersNoStatus['booking_status']);
 
         $base = $this->applyFilters($this->baseBookingQuery(), $filtersNoStatus);
@@ -408,6 +434,73 @@ class BookingService implements BookingServiceInterface
                 $q->whereDate('booking_date_to', '<=', $filters['date_to']);
             });
     }
+    
+    protected function assertGuestCapacityForItems(int $guestCount, array $items): void
+{
+    if ($guestCount <= 0 || empty($items)) {
+        return;
+    }
+
+    $serviceIds = collect($items)
+        ->pluck('service_id')
+        ->filter()
+        ->map(fn ($id) => (int) $id)
+        ->unique()
+        ->values();
+
+    if ($serviceIds->isEmpty()) {
+        return;
+    }
+
+    $services = \App\Models\Service::query()
+        ->whereIn('id', $serviceIds->all())
+        ->get()
+        ->keyBy('id');
+
+    $messages = [];
+
+    foreach ($serviceIds as $serviceId) {
+        /** @var \App\Models\Service|null $service */
+        $service = $services->get($serviceId);
+
+        if (! $service) {
+            continue;
+        }
+
+        $minGuests = $service->min_guests;
+        $maxGuests = $service->max_guests;
+        $capacityNote = trim((string) ($service->capacity_note ?? ''));
+
+        if ($minGuests !== null && $guestCount < (int) $minGuests) {
+            $messages[] = sprintf(
+                '%s requires at least %d guest%s. You entered %d.%s',
+                $service->name,
+                (int) $minGuests,
+                (int) $minGuests === 1 ? '' : 's',
+                $guestCount,
+                $capacityNote !== '' ? ' ' . $capacityNote : ''
+            );
+        }
+
+        if ($maxGuests !== null && $guestCount > (int) $maxGuests) {
+            $messages[] = sprintf(
+                '%s allows a maximum of %d guest%s. You entered %d.%s',
+                $service->name,
+                (int) $maxGuests,
+                (int) $maxGuests === 1 ? '' : 's',
+                $guestCount,
+                $capacityNote !== '' ? ' ' . $capacityNote : ''
+            );
+        }
+    }
+
+    if (! empty($messages)) {
+        throw \Illuminate\Validation\ValidationException::withMessages([
+            'items' => $messages,
+            'number_of_guests' => $messages[0],
+        ]);
+    }
+}
 
     protected function syncItems(Booking $booking, array $items): void
     {
@@ -429,31 +522,126 @@ class BookingService implements BookingServiceInterface
     }
 
     public function recalculatePaymentStatus(Booking $booking): void
-    {
-        $booking->loadMissing(['bookingServices.service', 'payments']);
+{
+    $booking->loadMissing(['bookingServices.service', 'payments']);
 
-        $itemsTotal = $booking->bookingServices->reduce(function ($carry, $item) {
-            $price = $item->service->price ?? 0;
-            return $carry + ($price * (int) $item->quantity);
-        }, 0);
+    $itemsTotal = $booking->bookingServices->reduce(function ($carry, $item) {
+        $price = $item->service->price ?? 0;
+        return $carry + ($price * (int) $item->quantity);
+    }, 0);
 
-        $completedPaid = $booking->payments
-            ->where('status', 'confirmed')
-            ->reduce(fn ($sum, $p) => $sum + (float) $p->amount, 0.0);
+    $completedPaid = $booking->payments
+        ->where('status', 'confirmed')
+        ->reduce(fn ($sum, $payment) => $sum + (float) $payment->amount, 0.0);
 
-        $newStatus = 'unpaid';
-        if ($itemsTotal <= 0) {
-            $newStatus = $completedPaid > 0 ? 'paid' : 'unpaid';
+    $newPaymentStatus = 'unpaid';
+
+    if ($itemsTotal <= 0) {
+        $newPaymentStatus = $completedPaid > 0 ? 'paid' : 'unpaid';
+    } else {
+        if ($completedPaid <= 0) {
+            $newPaymentStatus = 'unpaid';
+        } elseif ($completedPaid + 0.00001 >= $itemsTotal) {
+            $newPaymentStatus = 'paid';
         } else {
-            if ($completedPaid <= 0) $newStatus = 'unpaid';
-            elseif ($completedPaid + 0.00001 >= $itemsTotal) $newStatus = 'paid';
-            else $newStatus = 'partial';
-        }
-
-        if ($booking->payment_status !== $newStatus) {
-            $booking->update(['payment_status' => $newStatus]);
+            $newPaymentStatus = 'partial';
         }
     }
+
+    if ($booking->payment_status !== $newPaymentStatus) {
+        $booking->forceFill([
+            'payment_status' => $newPaymentStatus,
+        ])->saveQuietly();
+
+        $booking->refresh();
+    }
+
+    $this->syncLifecycleStatus($booking);
+}
+
+    public function syncLifecycleStatuses(): int
+{
+    $changed = 0;
+
+    Booking::query()
+        ->where('booking_status', '!=', 'cancelled')
+        ->orderBy('id')
+        ->chunkById(100, function ($bookings) use (&$changed) {
+            foreach ($bookings as $booking) {
+                if ($this->syncLifecycleStatus($booking)) {
+                    $changed++;
+                }
+            }
+        });
+
+    return $changed;
+}
+
+public function syncLifecycleStatus(Booking $booking): bool
+{
+    $currentStatus = strtolower((string) ($booking->booking_status ?? ''));
+
+    // Cancelled stays manual and is never auto-overwritten.
+    if ($currentStatus === 'cancelled') {
+        return false;
+    }
+
+    $nextStatus = $this->determineAutomaticBookingStatus($booking);
+
+    if ($nextStatus === $booking->booking_status) {
+        return false;
+    }
+
+    $booking->forceFill([
+        'booking_status' => $nextStatus,
+    ])->saveQuietly();
+
+    return true;
+}
+
+protected function determineAutomaticBookingStatus(Booking $booking): string
+{
+    $paymentStatus = strtolower((string) ($booking->payment_status ?? 'unpaid'));
+    $hasQualifiedPayment = in_array($paymentStatus, ['partial', 'paid'], true);
+
+    $now = Carbon::now();
+
+    $createdAt = $booking->created_at instanceof Carbon
+        ? $booking->created_at->copy()
+        : ($booking->created_at ? Carbon::parse($booking->created_at) : $now->copy());
+
+    $startsAt = $booking->booking_date_from instanceof Carbon
+        ? $booking->booking_date_from->copy()
+        : ($booking->booking_date_from ? Carbon::parse($booking->booking_date_from) : null);
+
+    $endsAt = $booking->booking_date_to instanceof Carbon
+        ? $booking->booking_date_to->copy()
+        : ($booking->booking_date_to ? Carbon::parse($booking->booking_date_to) : null);
+
+    // No qualifying payment yet:
+    // - within 24 hours from creation => pending
+    // - beyond 24 hours => declined
+    if (! $hasQualifiedPayment) {
+        return $createdAt->copy()->addHours(24)->lte($now)
+            ? 'declined'
+            : 'pending';
+    }
+
+    // Partial/Paid payment automatically qualifies the booking lifecycle.
+    if (! $startsAt || ! $endsAt) {
+        return 'confirmed';
+    }
+
+    if ($endsAt->lte($now)) {
+        return 'completed';
+    }
+
+    if ($startsAt->lte($now) && $endsAt->gt($now)) {
+        return 'active';
+    }
+
+    return 'confirmed';
+}
 
     protected function createExtraSchedules(Booking $baseBooking, array $extraSchedules): void
     {
@@ -573,141 +761,363 @@ class BookingService implements BookingServiceInterface
         ];
     }
 
-    public function getDailyAvailability(string $date, $excludeBookingId = null): array
-    {
-        $day = Carbon::createFromFormat('Y-m-d', $date)->startOfDay();
+    public function getDailyAvailability(string $date, $excludeBookingId = null, ?string $area = null): array
+{
+    $day = Carbon::createFromFormat('Y-m-d', $date)->startOfDay();
+    $dayStart = $day->copy()->setTime(6, 0);
+    $dayEnd = $day->copy()->addDay()->startOfDay();
 
-        $dayStart = $day->copy()->setTime(6, 0);
-        $dayEnd = $day->copy()->addDay()->startOfDay();
+    $intervals = [];
 
-        $intervals = [];
+    $bookingQuery = Booking::query()
+        ->with([
+            'bookingServices.service.serviceType',
+            'service.serviceType',
+        ])
+        ->whereIn('booking_status', ['active', 'confirmed'])
+        ->where('booking_date_from', '<', $dayEnd)
+        ->where('booking_date_to', '>', $dayStart);
 
-        $bookingQuery = Booking::query()
-            ->whereIn('booking_status', ['active', 'confirmed'])
-            ->where('booking_date_from', '<', $dayEnd)
-            ->where('booking_date_to', '>', $dayStart);
+    if (! empty($excludeBookingId)) {
+        $bookingQuery->where('id', '!=', $excludeBookingId);
+    }
 
-        if (!empty($excludeBookingId)) {
-            $bookingQuery->where('id', '!=', $excludeBookingId);
+    $bookings = $bookingQuery->get();
+
+    if ($area) {
+        $bookings = $bookings
+            ->filter(fn (Booking $booking) => $this->bookingMatchesArea($booking, $area))
+            ->values();
+    }
+
+    foreach ($bookings as $booking) {
+        $s = Carbon::parse($booking->booking_date_from);
+        $e = Carbon::parse($booking->booking_date_to);
+
+        if ($e->lte($dayStart) || $s->gte($dayEnd)) {
+            continue;
         }
 
-        $bookings = $bookingQuery->get(['id', 'booking_date_from', 'booking_date_to']);
+        $from = $s->gt($dayStart) ? $s : $dayStart->copy();
+        $to = $e->lt($dayEnd) ? $e : $dayEnd->copy();
 
-        foreach ($bookings as $b) {
-            $s = Carbon::parse($b->booking_date_from);
-            $e = Carbon::parse($b->booking_date_to);
+        if ($to->gt($from)) {
+            $intervals[] = [
+                'from' => $from,
+                'to' => $to,
+            ];
+        }
+    }
 
-            if ($e->lte($dayStart) || $s->gte($dayEnd)) {
-                continue;
-            }
+    if (Schema::hasTable('calendar_blocks')) {
+        $calendarBlocks = CalendarBlock::query()
+            ->whereDate('date_from', '<=', $day->format('Y-m-d'))
+            ->whereDate('date_to', '>=', $day->format('Y-m-d'))
+            ->get(['id', 'block', 'area']);
 
-            $from = $s->gt($dayStart) ? $s : $dayStart->copy();
-            $to = $e->lt($dayEnd) ? $e : $dayEnd->copy();
+        if ($area) {
+            $calendarBlocks = $calendarBlocks
+                ->filter(function (CalendarBlock $block) use ($area) {
+                    return $this->labelMatchesArea((string) ($block->area ?? ''), $area)
+                        || $this->isWholeVenueLabel((string) ($block->area ?? ''));
+                })
+                ->values();
+        }
+
+        foreach ($calendarBlocks as $blk) {
+            [$bStart, $bEnd] = $this->calendarBlockIntervalForDate((string) $blk->block, $day);
+
+            $from = $bStart->gt($dayStart) ? $bStart : $dayStart->copy();
+            $to = $bEnd->lt($dayEnd) ? $bEnd : $dayEnd->copy();
 
             if ($to->gt($from)) {
-                $intervals[] = ['from' => $from, 'to' => $to];
-            }
-        }
-
-        if (Schema::hasTable('calendar_blocks')) {
-            $blocks = CalendarBlock::query()
-                ->whereDate('date_from', '<=', $day->format('Y-m-d'))
-                ->whereDate('date_to', '>=', $day->format('Y-m-d'))
-                ->get(['id', 'block']);
-
-            foreach ($blocks as $blk) {
-                [$bStart, $bEnd] = $this->calendarBlockIntervalForDate((string) $blk->block, $day);
-
-                $from = $bStart->gt($dayStart) ? $bStart : $dayStart->copy();
-                $to = $bEnd->lt($dayEnd) ? $bEnd : $dayEnd->copy();
-
-                if ($to->gt($from)) {
-                    $intervals[] = ['from' => $from, 'to' => $to];
-                }
-            }
-        }
-
-        if (empty($intervals)) {
-            $blocks = $this->buildAvailabilityBlocks($day, []);
-            return [
-                'date' => $day->format('Y-m-d'),
-                'busy' => [],
-                'free' => [['from' => '06:00', 'to' => '23:59']],
-                'blocks' => $blocks,
-                'is_fully_booked' => false,
-            ];
-        }
-
-        usort($intervals, fn ($a, $b) => $a['from']->getTimestamp() <=> $b['from']->getTimestamp());
-
-        $merged = [];
-        foreach ($intervals as $it) {
-            if (empty($merged)) {
-                $merged[] = $it;
-                continue;
-            }
-
-            $lastIdx = count($merged) - 1;
-            $last = $merged[$lastIdx];
-
-            if ($it['from']->lte($last['to'])) {
-                if ($it['to']->gt($last['to'])) {
-                    $merged[$lastIdx]['to'] = $it['to'];
-                }
-            } else {
-                $merged[] = $it;
-            }
-        }
-
-        $busy = [];
-        foreach ($merged as $it) {
-            $from = $it['from'];
-            $to = $it['to'];
-
-            $busy[] = [
-                'from' => $from->format('H:i'),
-                'to' => $to->equalTo($dayEnd) ? '23:59' : $to->format('H:i'),
-            ];
-        }
-
-        $free = [];
-        $cursor = $dayStart->copy();
-
-        foreach ($merged as $it) {
-            if ($it['from']->gt($cursor)) {
-                $free[] = [
-                    'from' => $cursor->format('H:i'),
-                    'to' => $it['from']->format('H:i'),
+                $intervals[] = [
+                    'from' => $from,
+                    'to' => $to,
                 ];
             }
-
-            if ($it['to']->gt($cursor)) {
-                $cursor = $it['to']->copy();
-            }
         }
+    }
 
-        if ($cursor->lt($dayEnd)) {
-            $free[] = [
-                'from' => $cursor->format('H:i'),
-                'to' => '23:59',
-            ];
-        }
-
-        $blocks = $this->buildAvailabilityBlocks($day, $merged);
-        $isFullyBooked = !$blocks['AM']['is_available'] && !$blocks['PM']['is_available'] && !$blocks['EVE']['is_available'];
+    if (empty($intervals)) {
+        $blocks = $this->buildAvailabilityBlocks($day, []);
 
         return [
             'date' => $day->format('Y-m-d'),
-            'busy' => $busy,
-            'free' => $free,
+            'busy' => [],
+            'free' => [['from' => '06:00', 'to' => '23:59']],
             'blocks' => $blocks,
-            'is_fully_booked' => $isFullyBooked,
+            'is_fully_booked' => false,
         ];
     }
 
+    usort($intervals, fn ($a, $b) => $a['from']->getTimestamp() <=> $b['from']->getTimestamp());
+
+    $merged = [];
+
+    foreach ($intervals as $it) {
+        if (empty($merged)) {
+            $merged[] = $it;
+            continue;
+        }
+
+        $lastIdx = count($merged) - 1;
+        $last = $merged[$lastIdx];
+
+        if ($it['from']->lte($last['to'])) {
+            if ($it['to']->gt($last['to'])) {
+                $merged[$lastIdx]['to'] = $it['to'];
+            }
+        } else {
+            $merged[] = $it;
+        }
+    }
+
+    $busy = [];
+
+    foreach ($merged as $it) {
+        $from = $it['from'];
+        $to = $it['to'];
+
+        $busy[] = [
+            'from' => $from->format('H:i'),
+            'to' => $to->equalTo($dayEnd) ? '23:59' : $to->format('H:i'),
+        ];
+    }
+
+    $free = [];
+    $cursor = $dayStart->copy();
+
+    foreach ($merged as $it) {
+        if ($it['from']->gt($cursor)) {
+            $free[] = [
+                'from' => $cursor->format('H:i'),
+                'to' => $it['from']->format('H:i'),
+            ];
+        }
+
+        if ($it['to']->gt($cursor)) {
+            $cursor = $it['to']->copy();
+        }
+    }
+
+    if ($cursor->lt($dayEnd)) {
+        $free[] = [
+            'from' => $cursor->format('H:i'),
+            'to' => '23:59',
+        ];
+    }
+
+    $blocks = $this->buildAvailabilityBlocks($day, $merged);
+
+    $isFullyBooked = ! $blocks['AM']['is_available']
+        && ! $blocks['PM']['is_available']
+        && ! $blocks['EVE']['is_available'];
+
+    return [
+        'date' => $day->format('Y-m-d'),
+        'busy' => $busy,
+        'free' => $free,
+        'blocks' => $blocks,
+        'is_fully_booked' => $isFullyBooked,
+    ];
+}
+
+    public function getPublicDayStatus(string $date, ?string $area = null, $excludeBookingId = null): array
+{
+    $availability = $this->getDailyAvailability($date, $excludeBookingId, $area);
+
+    $events = PublicEvent::query()
+        ->where('is_public', true)
+        ->whereDate('event_date', $date)
+        ->get()
+        ->filter(function (PublicEvent $event) use ($area) {
+            if (! $area) {
+                return true;
+            }
+
+            return $this->labelMatchesArea((string) ($event->venue ?? ''), $area)
+                || $this->isWholeVenueLabel((string) ($event->venue ?? ''));
+        })
+        ->values();
+
+    $calendarBlocks = CalendarBlock::query()
+        ->whereDate('date_from', '<=', $date)
+        ->whereDate('date_to', '>=', $date)
+        ->get()
+        ->filter(function (CalendarBlock $block) use ($area) {
+            if (! $area) {
+                return true;
+            }
+
+            return $this->labelMatchesArea((string) ($block->area ?? ''), $area)
+                || $this->isWholeVenueLabel((string) ($block->area ?? ''));
+        })
+        ->values();
+
+    $hasRedBlock = $calendarBlocks->contains(
+        fn (CalendarBlock $block) => strtolower((string) ($block->public_status ?? '')) === 'red'
+    );
+
+    $hasBlueBlock = $calendarBlocks->contains(
+        fn (CalendarBlock $block) => strtolower((string) ($block->public_status ?? '')) === 'blue'
+    );
+
+    $hasGoldBlock = $calendarBlocks->contains(
+        fn (CalendarBlock $block) => strtolower((string) ($block->public_status ?? '')) === 'gold'
+    );
+
+    $availableBlockCount = collect($availability['blocks'] ?? [])
+        ->filter(fn ($block) => (bool) data_get($block, 'is_available', false))
+        ->count();
+
+    $status = 'available';
+
+    if ($hasRedBlock) {
+        $status = 'blocked';
+    } elseif ($hasBlueBlock || $events->isNotEmpty()) {
+        $status = 'public_booked';
+    } elseif ($hasGoldBlock || (bool) ($availability['is_fully_booked'] ?? false)) {
+        $status = 'private_booked';
+    } elseif ($availableBlockCount > 0 && $availableBlockCount < 3) {
+        $status = 'limited';
+    }
+
+    $title = 'Selected date is currently available';
+    $description = 'No conflicting booking, public event, or admin block was found for the selected venue and date.';
+    $note = 'You can continue to the formal booking workflow for final validation.';
+
+    if ($status === 'limited') {
+        $title = 'Selected date has limited availability';
+        $description = 'Some time blocks are already occupied for the selected venue, but at least one block is still open.';
+        $note = 'Check the AM / PM / EVE availability below before proceeding.';
+    } elseif ($status === 'public_booked') {
+        $title = 'Selected date already has a public event';
+        $description = $events->isNotEmpty()
+            ? 'This date is already assigned to a public-facing event for the selected venue.'
+            : 'This date is marked as a public or government event by the calendar controls.';
+        $note = 'Public events are visible to users and should appear consistently on the public calendar.';
+    } elseif ($status === 'private_booked') {
+        $title = 'Selected date is privately booked or fully occupied';
+        $description = 'The selected venue is already occupied by a confirmed/private schedule for the checked date.';
+        $note = 'Private booking details remain hidden, but the occupied time blocks are reflected in availability.';
+    } elseif ($status === 'blocked') {
+        $title = 'Selected date is blocked and unavailable';
+        $description = 'The admin calendar currently marks this venue/date as unavailable.';
+        $note = 'Blocked dates should not accept new requests from the public checker.';
+    }
+
+    return [
+        'date' => $date,
+        'venue' => $area,
+        'status' => $status,
+        'title' => $title,
+        'description' => $description,
+        'note' => $note,
+        'blocks' => $availability['blocks'] ?? [],
+        'busy' => $availability['busy'] ?? [],
+        'free' => $availability['free'] ?? [],
+        'is_fully_booked' => (bool) ($availability['is_fully_booked'] ?? false),
+        'event_titles' => $events->pluck('title')->values()->all(),
+    ];
+}
+
+public function getPublicMonthCalendar(string $month, ?string $area = null): array
+{
+    $start = Carbon::createFromFormat('Y-m', $month)->startOfMonth();
+    $end = $start->copy()->endOfMonth();
+
+    $days = [];
+
+    for ($day = $start->copy(); $day->lte($end); $day->addDay()) {
+        $days[] = $this->getPublicDayStatus($day->format('Y-m-d'), $area);
+    }
+
+    return $days;
+}
+
+private function labelMatchesArea(?string $candidate, string $selected): bool
+{
+    $candidateNormalized = $this->normalizeAreaLabel($candidate);
+    $selectedNormalized = $this->normalizeAreaLabel($selected);
+
+    $candidateCompact = str_replace(' ', '', $candidateNormalized);
+    $selectedCompact = str_replace(' ', '', $selectedNormalized);
+
+    if ($candidateNormalized === '' || $selectedNormalized === '') {
+        return false;
+    }
+
+    return $candidateNormalized === $selectedNormalized
+        || $candidateCompact === $selectedCompact
+        || str_contains($candidateNormalized, $selectedNormalized)
+        || str_contains($selectedNormalized, $candidateNormalized)
+        || str_contains($candidateCompact, $selectedCompact)
+        || str_contains($selectedCompact, $candidateCompact);
+}
+
+private function normalizeAreaLabel(?string $value): string
+{
+    $value = mb_strtolower(trim((string) $value));
+    $value = preg_replace('/[^a-z0-9]+/u', ' ', $value) ?? '';
+
+    return trim(preg_replace('/\s+/u', ' ', $value) ?? '');
+}
+
+private function isWholeVenueLabel(?string $value): bool
+{
+    $normalized = str_replace(' ', '', $this->normalizeAreaLabel($value));
+
+    return in_array($normalized, [
+        'wholevenue',
+        'wholefacility',
+        'entirevenue',
+        'allareas',
+        'allarea',
+        'allspaces',
+        'wholeplace',
+        'whole',
+    ], true);
+}
+
+
+private function bookingMatchesArea(Booking $booking, string $area): bool
+{
+    foreach ($booking->bookingServices ?? [] as $item) {
+        $service = $item->service;
+
+        if (! $service) {
+            continue;
+        }
+
+        if (
+            $this->labelMatchesArea((string) ($service->name ?? ''), $area) ||
+            $this->labelMatchesArea((string) ($service->serviceType?->name ?? ''), $area)
+        ) {
+            return true;
+        }
+    }
+
+    $directService = $booking->service;
+
+    if ($directService) {
+        if (
+            $this->labelMatchesArea((string) ($directService->name ?? ''), $area) ||
+            $this->labelMatchesArea((string) ($directService->serviceType?->name ?? ''), $area)
+        ) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
     public function getUnavailableDates($excludeBookingId = null): array
-    {
-        $start = Carbon::today()->startOfDay();
+{
+    $this->syncLifecycleStatuses();
+
+    $start = Carbon::today()->startOfDay();
+
         $end = $start->copy()->addDays(365)->startOfDay();
 
         $availability = [];

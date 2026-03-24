@@ -1,21 +1,33 @@
+import { usePage } from '@inertiajs/react';
 import type { ReactNode } from 'react';
-
 import PublicFooter from '@/components/public/public-footer';
 import PublicHeader from '@/components/public/public-header';
 
+export type SiteSettings = {
+  mapEmbedUrl?: string | null;
+  openMapUrl?: string | null;
+  address?: string | null;
+  phone?: string | null;
+  email?: string | null;
+  footerDescription?: string | null;
+  footerCopyright?: string | null;
+};
+
 type PublicLayoutProps = {
-    children: ReactNode;
+  children: ReactNode;
 };
 
 export default function PublicLayout({ children }: PublicLayoutProps) {
-    return (
-        <div className="min-h-screen bg-[#f6f2ea] text-[#1f1f1c] antialiased dark:bg-[#101114] dark:text-[#f5f5f5]">
-            <div className="relative overflow-x-clip">
-                <div className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-[28rem] bg-gradient-to-b from-[#dcebdd] via-[#f6f2ea] to-transparent dark:from-[#16231f] dark:via-[#101114] dark:to-transparent" />
-                <PublicHeader />
-                <main className="relative z-10">{children}</main>
-                <PublicFooter />
-            </div>
-        </div>
-    );
+  const page = usePage<{ siteSettings?: SiteSettings }>();
+  const siteSettings = page.props.siteSettings;
+
+  return (
+    <div className="min-h-screen bg-[#f7f5ef] text-[#232320] dark:bg-[#0f1014] dark:text-white">
+      <PublicHeader />
+
+      <main className="pt-24">{children}</main>
+
+      <PublicFooter siteSettings={siteSettings} />
+    </div>
+  );
 }

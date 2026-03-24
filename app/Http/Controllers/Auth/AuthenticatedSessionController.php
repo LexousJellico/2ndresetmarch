@@ -27,7 +27,11 @@ class AuthenticatedSessionController extends Controller
     {
         $user = $request->validateCredentials();
 
-        if (Features::enabled(Features::twoFactorAuthentication()) && $user->hasEnabledTwoFactorAuthentication()) {
+        if (
+            Features::enabled(Features::twoFactorAuthentication()) &&
+            method_exists($user, 'hasEnabledTwoFactorAuthentication') &&
+            $user->hasEnabledTwoFactorAuthentication()
+        ) {
             $request->session()->put([
                 'login.id' => $user->getKey(),
                 'login.remember' => $request->boolean('remember'),
@@ -39,7 +43,11 @@ class AuthenticatedSessionController extends Controller
         Auth::login($user, $request->boolean('remember'));
         $request->session()->regenerate();
 
-        $adminTarget = $this->resolveAdminTarget($request);
+        if (method_exists($user, 'hasVerifiedEmail') && ! $user->hasVerifiedEmail()) {
+            return redirect()->route('verification.notice');
+        }
+
+        $adminTarget = $this->resolveAdminTarget($request, $user);
 
         if ($adminTarget) {
             return redirect()->intended($adminTarget);
@@ -58,7 +66,7 @@ class AuthenticatedSessionController extends Controller
         return redirect('/');
     }
 
-    protected function resolveAdminTarget(Request $request): ?string
+    protected function resolveAdminTarget(Request $request, mixed $user): ?string
     {
         $redirectTo = (string) $request->input('redirect_to', '');
 
@@ -69,6 +77,10 @@ class AuthenticatedSessionController extends Controller
         $previous = (string) url()->previous();
 
         if (Str::contains($previous, '/admin')) {
+            return '/admin/home';
+        }
+
+        if (method_exists($user, 'hasAnyRole') && $user->hasAnyRole(['admin', 'manager'])) {
             return '/admin/home';
         }
 

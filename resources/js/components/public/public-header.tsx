@@ -1,7 +1,6 @@
 import { Link, usePage } from '@inertiajs/react';
-import { CalendarDays, Menu, X } from 'lucide-react';
+import { CalendarDays, Menu, MessageSquareMore, X } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
-
 import ThemeToggle from '@/components/public/theme-toggle';
 
 type AuthUser = {
@@ -26,9 +25,7 @@ const navItems = [
 
 export default function PublicHeader() {
     const page = usePage<SharedProps>();
-    const user = page.props.auth?.user;
     const currentUrl = useMemo(() => page.url.split('?')[0], [page.url]);
-
     const [isScrolled, setIsScrolled] = useState(false);
     const [mobileOpen, setMobileOpen] = useState(false);
 
@@ -36,11 +33,13 @@ export default function PublicHeader() {
         const onScroll = () => setIsScrolled(window.scrollY > 10);
         onScroll();
         window.addEventListener('scroll', onScroll);
+
         return () => window.removeEventListener('scroll', onScroll);
     }, []);
 
     useEffect(() => {
         const previous = document.body.style.overflow;
+
         if (mobileOpen) {
             document.body.style.overflow = 'hidden';
         }
@@ -54,11 +53,9 @@ export default function PublicHeader() {
         if (href === '/') {
             return currentUrl === '/';
         }
+
         return currentUrl === href || currentUrl.startsWith(`${href}/`);
     };
-
-    const ctaHref = user ? '/dashboard' : '/contact';
-    const ctaLabel = user ? 'Dashboard' : 'Book / Inquire';
 
     return (
         <>
@@ -82,7 +79,7 @@ export default function PublicHeader() {
                                         BCCC EASE
                                     </p>
                                     <p className="truncate text-xs text-[#5b5b57] dark:text-[#bcbcc4]">
-                                        Baguio Convention & Cultural Center
+                                        Baguio Convention &amp; Cultural Center
                                     </p>
                                 </div>
                             </Link>
@@ -96,7 +93,7 @@ export default function PublicHeader() {
                                     className={`rounded-full px-4 py-2 text-sm font-semibold transition ${
                                         isActive(item.href)
                                             ? 'bg-[#174f40] text-white dark:bg-[#2d47ff]'
-                                            : 'text-[#2b2b29] hover:bg-black/5 dark:text-[#ececf1] dark:hover:bg-white/10'
+                                            : 'text-[#1f1f1c] hover:bg-black/5 dark:text-white dark:hover:bg-white/10'
                                     }`}
                                 >
                                     {item.label}
@@ -105,15 +102,25 @@ export default function PublicHeader() {
                         </nav>
 
                         <div className="hidden items-center gap-3 xl:flex">
-                            <ThemeToggle />
+                            <div className="inline-flex overflow-hidden rounded-full border border-black/10 bg-white/80 shadow-sm dark:border-white/10 dark:bg-[#1b1c20]">
+                                <Link
+                                    href="/bookings/create"
+                                    className="inline-flex items-center gap-2 border-r border-black/10 px-4 py-2.5 text-sm font-semibold text-[#174f40] transition hover:bg-[#eef4f1] dark:border-white/10 dark:text-[#9dc0ff] dark:hover:bg-[#1d2330]"
+                                >
+                                    <CalendarDays className="h-4 w-4" />
+                                    Book
+                                </Link>
 
-                            <Link
-                                href={ctaHref}
-                                className="inline-flex items-center gap-2 rounded-full bg-[#174f40] px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:-translate-y-0.5 dark:bg-[#2d47ff]"
-                            >
-                                <CalendarDays className="h-4 w-4" />
-                                {ctaLabel}
-                            </Link>
+                                <Link
+                                    href="/contact"
+                                    className="inline-flex items-center gap-2 px-4 py-2.5 text-sm font-semibold text-[#1f1f1c] transition hover:bg-[#f4ede1] dark:text-white dark:hover:bg-[#26272d]"
+                                >
+                                    <MessageSquareMore className="h-4 w-4" />
+                                    Inquire
+                                </Link>
+                            </div>
+
+                            <ThemeToggle />
                         </div>
 
                         <div className="flex items-center gap-2 xl:hidden">
@@ -134,15 +141,20 @@ export default function PublicHeader() {
 
             {mobileOpen && (
                 <div className="fixed inset-0 z-[60] xl:hidden">
-                    <div className="absolute inset-0 bg-black/45" onClick={() => setMobileOpen(false)} />
+                    <div
+                        className="absolute inset-0 bg-black/55"
+                        onClick={() => setMobileOpen(false)}
+                    />
 
-                    <div className="absolute right-0 top-0 flex h-full w-full max-w-sm flex-col bg-[#f6f2ea] p-5 dark:bg-[#111216]">
+                    <div className="absolute right-0 top-0 h-full w-full max-w-sm overflow-y-auto bg-[#f6f2ea] p-5 dark:bg-[#101114]">
                         <div className="mb-6 flex items-center justify-between">
                             <div>
                                 <p className="text-sm font-black uppercase tracking-[0.18em] text-[#174f40] dark:text-[#9dc0ff]">
                                     BCCC EASE
                                 </p>
-                                <p className="text-xs text-[#60605d] dark:text-[#b9b9c0]">Public Navigation</p>
+                                <p className="text-xs text-[#5b5b57] dark:text-[#bcbcc4]">
+                                    Public Navigation
+                                </p>
                             </div>
 
                             <button
@@ -172,21 +184,34 @@ export default function PublicHeader() {
                             ))}
                         </div>
 
-                        <div className="mt-6 rounded-3xl border border-black/10 bg-white p-4 dark:border-white/10 dark:bg-[#17181c]">
-                            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#174f40] dark:text-[#9dc0ff]">
+                        <div className="mt-6 rounded-[1.8rem] border border-black/10 bg-white p-4 dark:border-white/10 dark:bg-[#17181c]">
+                            <p className="text-xs font-black uppercase tracking-[0.14em] text-[#174f40] dark:text-[#9dc0ff]">
                                 Quick Action
                             </p>
-                            <p className="mt-2 text-sm leading-6 text-[#5f5f5b] dark:text-[#c1c1c8]">
-                                Start your venue inquiry, review spaces, or continue to the official booking flow.
+
+                            <p className="mt-2 text-sm leading-7 text-[#5b5b57] dark:text-[#c8c8ce]">
+                                Start the formal booking flow or go directly to the inquiry page.
                             </p>
 
-                            <Link
-                                href={ctaHref}
-                                onClick={() => setMobileOpen(false)}
-                                className="mt-4 inline-flex w-full items-center justify-center rounded-full bg-[#174f40] px-5 py-3 text-sm font-semibold text-white dark:bg-[#2d47ff]"
-                            >
-                                {ctaLabel}
-                            </Link>
+                            <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                                <Link
+                                    href="/bookings/create"
+                                    onClick={() => setMobileOpen(false)}
+                                    className="inline-flex items-center justify-center gap-2 rounded-full bg-[#174f40] px-5 py-3 text-sm font-semibold text-white dark:bg-[#2d47ff]"
+                                >
+                                    <CalendarDays className="h-4 w-4" />
+                                    Book
+                                </Link>
+
+                                <Link
+                                    href="/contact"
+                                    onClick={() => setMobileOpen(false)}
+                                    className="inline-flex items-center justify-center gap-2 rounded-full border border-black/10 px-5 py-3 text-sm font-semibold dark:border-white/10"
+                                >
+                                    <MessageSquareMore className="h-4 w-4" />
+                                    Inquire
+                                </Link>
+                            </div>
                         </div>
                     </div>
                 </div>

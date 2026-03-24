@@ -365,10 +365,10 @@ interface EditBookingProps {
 
 export default function EditBooking({ booking }: EditBookingProps) {
   const breadcrumbs: BreadcrumbItem[] = [
-    ...breadcrumbsBase,
-    { title: (booking as any).client_name || 'View', href: bookingsRoutes.show.url({ booking: (booking as any).id }) },
-    { title: 'Edit', href: bookingsRoutes.edit.url({ booking: (booking as any).id }) },
-  ];
+  { title: 'Bookings', href: '/bookings' },
+  { title: 'Edit', href: '/bookings' },
+];
+
 
   const { auth, survey } = usePage<{ auth?: AuthLike | null; survey?: any }>().props;
 

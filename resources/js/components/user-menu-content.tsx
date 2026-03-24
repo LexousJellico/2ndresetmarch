@@ -6,11 +6,12 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { UserInfo } from '@/components/user-info';
 import { useMobileNavigation } from '@/hooks/use-mobile-navigation';
-import { logout } from '@/routes';
 import { edit } from '@/routes/profile';
 import { type User } from '@/types';
 import { Link, router } from '@inertiajs/react';
 import { LogOut, Settings } from 'lucide-react';
+import { useState } from 'react';
+import ConfirmActionDialog from '@/components/confirm-action-dialog';
 
 interface UserMenuContentProps {
     user: User;
@@ -18,47 +19,59 @@ interface UserMenuContentProps {
 
 export function UserMenuContent({ user }: UserMenuContentProps) {
     const cleanup = useMobileNavigation();
+    const [confirmLogoutOpen, setConfirmLogoutOpen] = useState(false);
+    const [logoutProcessing, setLogoutProcessing] = useState(false);
 
     const handleLogout = () => {
         cleanup();
+        setLogoutProcessing(true);
         router.flushAll();
+
+        router.post('/logout', undefined, {
+            onFinish: () => {
+                setLogoutProcessing(false);
+                setConfirmLogoutOpen(false);
+            },
+        });
     };
 
     return (
         <>
             <DropdownMenuLabel className="p-0 font-normal">
-                <div className="flex items-center gap-2 px-1 py-1.5 text-left text-sm">
-                    <UserInfo user={user} showEmail={true} />
-                </div>
+                <UserInfo user={user} showEmail />
             </DropdownMenuLabel>
+
             <DropdownMenuSeparator />
+
             <DropdownMenuGroup>
                 <DropdownMenuItem asChild>
-                    <Link
-                        className="block w-full"
-                        href={edit()}
-                        as="button"
-                        prefetch
-                        onClick={cleanup}
-                    >
-                        <Settings className="mr-2" />
+                    <Link href={edit()}>
+                        <Settings className="mr-2 h-4 w-4" />
                         Settings
                     </Link>
                 </DropdownMenuItem>
-            </DropdownMenuGroup>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem asChild>
-                <Link
-                    className="block w-full"
-                    href={logout()}
-                    as="button"
-                    onClick={handleLogout}
-                    data-test="logout-button"
+
+                <DropdownMenuItem
+                    onSelect={(event) => {
+                        event.preventDefault();
+                        setConfirmLogoutOpen(true);
+                    }}
                 >
-                    <LogOut className="mr-2" />
+                    <LogOut className="mr-2 h-4 w-4" />
                     Log out
-                </Link>
-            </DropdownMenuItem>
+                </DropdownMenuItem>
+            </DropdownMenuGroup>
+
+            <ConfirmActionDialog
+                open={confirmLogoutOpen}
+                onOpenChange={setConfirmLogoutOpen}
+                title="Log out of your account?"
+                description="You are about to end your current session."
+                confirmLabel="Log out"
+                cancelLabel="Stay here"
+                onConfirm={handleLogout}
+                processing={logoutProcessing}
+            />
         </>
     );
 }

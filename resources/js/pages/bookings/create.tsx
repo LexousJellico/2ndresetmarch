@@ -6,17 +6,19 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Plus, Minus, Trash2, Search, X, Info } from 'lucide-react';
+import { Plus, Trash2, Search, X, Info, Users, AlertTriangle } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { FormEvent } from 'react';
 import bookingsRoutes from '@/routes/bookings';
 import { cn } from '@/lib/utils';
 import qrFallback from '@/components/logo/qr.png';
+import BookingViewSwitch from '@/components/bookings/view-switch';
 
 const breadcrumbs: BreadcrumbItem[] = [
-  { title: 'Bookings', href: bookingsRoutes.index.url() },
-  { title: 'Create', href: bookingsRoutes.create.url() },
+  { title: 'Bookings', href: '/bookings' },
+  { title: 'Create', href: '/bookings/create' },
 ];
+
 
 interface ServiceTypeWithServices {
   id: number;
@@ -186,6 +188,51 @@ function formatIsoRangeDisplay(fromIso: string, toIso: string): string {
   if (Number.isNaN(s.getTime()) || Number.isNaN(e.getTime())) {
     return `${fromIso} → ${toIso}`;
   }
+function getGuestCountNumber(raw: string | number | null | undefined) {
+    const value = Number(raw ?? 0);
+    return Number.isFinite(value) ? value : 0;
+}
+
+function getServiceCapacityError(
+    service: Service,
+    guestCount: number,
+): string | null {
+    if (guestCount <= 0) {
+        return null;
+    }
+
+    const minGuests = service.min_guests ?? null;
+    const maxGuests = service.max_guests ?? null;
+
+    if (minGuests !== null && guestCount < minGuests) {
+        return `${service.name} requires at least ${minGuests} guest${minGuests === 1 ? '' : 's'}.`;
+    }
+
+    if (maxGuests !== null && guestCount > maxGuests) {
+        return `${service.name} allows a maximum of ${maxGuests} guest${maxGuests === 1 ? '' : 's'}.`;
+    }
+
+    return null;
+}
+
+function getServiceCapacityLabel(service: Service): string | null {
+    const minGuests = service.min_guests ?? null;
+    const maxGuests = service.max_guests ?? null;
+
+    if (minGuests !== null && maxGuests !== null) {
+        return `${minGuests}-${maxGuests} guests`;
+    }
+
+    if (minGuests !== null) {
+        return `Min ${minGuests} guests`;
+    }
+
+    if (maxGuests !== null) {
+        return `Max ${maxGuests} guests`;
+    }
+
+    return null;
+}
 
   const sameDay = formatDateOnlyLocal(s) === formatDateOnlyLocal(e);
 
@@ -400,6 +447,13 @@ export default function CreateBooking({ serviceTypes, initialSchedule }: CreateB
   const isClient = roleNames.includes('user');
   const isAdmin = roleNames.includes('admin');
 
+  const canAccessBackendDesign = Boolean(auth?.user);
+  const backendDesignHref = roleNames.some((role) =>
+    ['admin', 'manager', 'staff'].includes(String(role).toLowerCase()),
+  )
+    ? '/admin/dashboard'
+    : '/dashboard';
+    
   // ✅ Auto-fill ONLY the "Client Email" field for clients (NOT the survey email)
   const authUserEmail = String(auth?.user?.email ?? auth?.email ?? '').trim();
 
@@ -471,6 +525,12 @@ export default function CreateBooking({ serviceTypes, initialSchedule }: CreateB
     }
     setPencilBookedPopup(null);
   };
+  const [serviceCapacityNotice, setServiceCapacityNotice] = useState<string | null>(null);
+
+const guestCountNumber = useMemo(
+    () => getGuestCountNumber(data.number_of_guests),
+    [data.number_of_guests],
+);
 
   const openPencilBookedPopup = (requestedAt: Date) => {
     const dueAt = new Date(requestedAt.getTime() + 24 * 60 * 60 * 1000); // +24 hours
@@ -501,10 +561,13 @@ export default function CreateBooking({ serviceTypes, initialSchedule }: CreateB
   }, []);
 
   const cartTotals = useMemo(() => {
-    const itemsTotal = cart.reduce((sum, i) => sum + i.price * i.quantity, 0);
-    const itemsCount = cart.reduce((sum, i) => sum + i.quantity, 0);
+    const itemsTotal = cart.reduce((sum, i) => sum + i.price, 0);
+    const itemsCount = cart.length;
+
     return { itemsTotal, itemsCount };
-  }, [cart]);
+}, [cart]);
+
+
 
   // Schedule state
   const [bookingDate, setBookingDate] = useState<string>(initialSchedule?.date ?? '');
@@ -711,7 +774,7 @@ export default function CreateBooking({ serviceTypes, initialSchedule }: CreateB
       booking_date_from: mainRange.fromIso,
       booking_date_to: mainRange.toIso,
       number_of_guests: data.number_of_guests === '' ? '' : Number(data.number_of_guests),
-      items: cart.map((ci) => ({ service_id: ci.service_id, quantity: ci.quantity })),
+      items: cart.map((ci) => ({ service_id: ci.service_id, quantity: 1 })),
       extra_schedules: extrasPayload.filter((x) => x?.from && x?.to).map((x) => ({ from: x.from, to: x.to })),
     };
 
@@ -807,6 +870,7 @@ export default function CreateBooking({ serviceTypes, initialSchedule }: CreateB
   return (
     <AppLayout breadcrumbs={breadcrumbs}>
       <Head title="Create Booking" />
+      <BookingViewSwitch showBackend={canAccessBackendDesign} backendHref={backendDesignHref} />
 
       {/* ✅ POPUP NOTICE (auto-close 5s unless X clicked) */}
       {pencilBookedPopup && (
@@ -976,8 +1040,17 @@ export default function CreateBooking({ serviceTypes, initialSchedule }: CreateB
                   <div className="flex flex-wrap items-start justify-between gap-2">
                     <div>
                       <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Services</div>
+                      {serviceCapacityNotice ? (
+    <div className="mb-3 rounded-2xl border border-[#f2c8c8] bg-[#fff6f6] px-4 py-3 text-sm text-[#a52a2a] dark:border-[#6e2a2a] dark:bg-[#241414] dark:text-[#ffbcbc]">
+        <div className="flex items-start gap-2">
+            <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+            <span>{serviceCapacityNotice}</span>
+        </div>
+    </div>
+) : null}
+
                       <div className="text-sm font-medium">
-                        Items: {cart.length} • Qty: {confirmData.itemsCount} • Total:{' '}
+                        Selected services: {confirmData.itemsCount} • Total:{' '}
                         {confirmData.itemsTotal.toLocaleString('en-US', {
                           minimumFractionDigits: 2,
                           maximumFractionDigits: 2,
@@ -992,39 +1065,54 @@ export default function CreateBooking({ serviceTypes, initialSchedule }: CreateB
                         <tr className="text-left text-xs text-muted-foreground">
                           <th className="py-2 pr-2">Service</th>
                           <th className="py-2 pr-2">Area</th>
-                          <th className="py-2 pr-2 text-right">Qty</th>
                           <th className="py-2 pr-2 text-right">Price</th>
-                          <th className="py-2 pr-2 text-right">Line total</th>
+                          <th className="py-2 pr-2 text-right">Total</th>
                         </tr>
                       </thead>
                       <tbody>
-                        {cart.map((it) => (
-                          <tr key={`confirm-item-${it.service_id}`} className="border-t">
-                            <td className="py-2 pr-2">{it.name}</td>
-                            <td className="py-2 pr-2">{it.area ?? '—'}</td>
-                            <td className="py-2 pr-2 text-right tabular-nums">{it.quantity}</td>
-                            <td className="py-2 pr-2 text-right tabular-nums">
-                              {Number(it.price).toLocaleString('en-US', {
+                        <div className="space-y-3">
+    {cart.length > 0 ? (
+        cart.map((i) => (
+            <div
+                key={i.service_id}
+                className="rounded-2xl border border-black/10 bg-white p-4 dark:border-white/10 dark:bg-[#17181c]"
+            >
+                <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                        <p className="text-sm font-black text-[#1f1f1c] dark:text-white">
+                            {i.name}
+                        </p>
+                        <p className="mt-1 text-xs text-[#5b564f] dark:text-[#c8c8ce]">
+                            {i.area ?? '-'}
+                        </p>
+                        <p className="mt-2 text-sm font-semibold text-[#174f40] dark:text-[#9dc0ff]">
+                            {Number(i.price).toLocaleString('en-US', {
                                 minimumFractionDigits: 2,
                                 maximumFractionDigits: 2,
-                              })}
-                            </td>
-                            <td className="py-2 pr-2 text-right tabular-nums">
-                              {(it.price * it.quantity).toLocaleString('en-US', {
-                                minimumFractionDigits: 2,
-                                maximumFractionDigits: 2,
-                              })}
-                            </td>
-                          </tr>
-                        ))}
+                            })}
+                        </p>
+                    </div>
 
-                        {cart.length === 0 && (
-                          <tr>
-                            <td className="py-4 text-muted-foreground" colSpan={5}>
-                              No services selected.
-                            </td>
-                          </tr>
-                        )}
+                    <button
+                        type="button"
+                        onClick={() =>
+                            setCart((prev) => prev.filter((ci) => ci.service_id !== i.service_id))
+                        }
+                        className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-black/10 text-[#a52a2a] transition hover:bg-[#fff6f6] dark:border-white/10 dark:hover:bg-[#241414]"
+                        title="Remove service"
+                    >
+                        <Trash2 className="h-4 w-4" />
+                    </button>
+                </div>
+            </div>
+        ))
+    ) : (
+        <div className="rounded-2xl border border-dashed border-black/10 px-4 py-6 text-sm text-[#5b564f] dark:border-white/10 dark:text-[#c8c8ce]">
+            No services selected yet.
+        </div>
+    )}
+</div>
+
                       </tbody>
                     </table>
                   </div>
@@ -1500,6 +1588,10 @@ export default function CreateBooking({ serviceTypes, initialSchedule }: CreateB
                 <div className={gridAuto2}>
                   <div className="grid gap-2 min-w-0">
                     <Label htmlFor="number_of_guests">Guests</Label>
+                    <p className="mt-2 text-xs text-[#5b564f] dark:text-[#c8c8ce]">
+                      Selected services may have guest-capacity limits. If a room or setup does not match the guest count,
+                      booking submission will be blocked.
+                    </p>
                     <Input
                       id="number_of_guests"
                       type="number"
@@ -1570,6 +1662,21 @@ export default function CreateBooking({ serviceTypes, initialSchedule }: CreateB
                         <div key={s.id} className="flex items-start gap-3 rounded-md border px-3 py-2">
                           <div className="flex flex-col min-w-0">
                             <span className="font-medium">{s.name}</span>
+                            <div className="mt-2 flex flex-wrap gap-2">
+    {getServiceCapacityLabel(s) ? (
+        <span className="inline-flex items-center gap-1 rounded-full bg-[#eef4f1] px-2.5 py-1 text-[11px] font-bold text-[#174f40] dark:bg-[#1d2330] dark:text-[#9dc0ff]">
+            <Users className="h-3.5 w-3.5" />
+            {getServiceCapacityLabel(s)}
+        </span>
+    ) : null}
+
+    {s.capacity_note ? (
+        <span className="inline-flex rounded-full bg-[#f4ede1] px-2.5 py-1 text-[11px] font-semibold text-[#6b5a39] dark:bg-[#26272d] dark:text-[#d8c7a7]">
+            {s.capacity_note}
+        </span>
+    ) : null}
+</div>
+
                             <span className="text-xs text-muted-foreground">{s.description}</span>
                           </div>
 
@@ -1582,13 +1689,34 @@ export default function CreateBooking({ serviceTypes, initialSchedule }: CreateB
                               type="button"
                               size="icon"
                               onClick={() => {
-                                setCart((prev) => {
-                                  const existing = prev.find((ci) => ci.service_id === s.id);
-                                  if (existing) {
-                                    return prev.map((ci) => (ci.service_id === s.id ? { ...ci, quantity: ci.quantity + 1 } : ci));
-                                  }
-                                  return [...prev, { service_id: s.id, name: s.name, area: type.name, price: Number(s.price), quantity: 1 }];
-                                });
+                                const capacityError = getServiceCapacityError(s, guestCountNumber);
+
+if (capacityError) {
+    setServiceCapacityNotice(capacityError);
+    return;
+}
+
+setServiceCapacityNotice(null);
+
+setCart((prev) => {
+    const alreadySelected = prev.some((ci) => ci.service_id === s.id);
+
+    if (alreadySelected) {
+        return prev;
+    }
+
+    return [
+        ...prev,
+        {
+            service_id: s.id,
+            name: s.name,
+            area: type.name,
+            price: Number(s.price),
+            quantity: 1,
+        },
+    ];
+});
+
                               }}
                               title="Add service"
                             >
@@ -1627,70 +1755,22 @@ export default function CreateBooking({ serviceTypes, initialSchedule }: CreateB
                     <tbody>
                       {cart.map((i) => (
                         <tr key={i.service_id} className="border-t">
-                          <td className="py-2 pr-2">{i.name}</td>
-                          <td className="py-2 pr-2">{i.area ?? '-'}</td>
-                          <td className="py-2 pr-2">
-                            {Number(i.price).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                          </td>
-                          <td className="py-2 pr-2">
-                            <div className="flex items-center gap-2">
-                              <Button
-                                type="button"
-                                size="icon"
-                                variant="outline"
-                                onClick={() =>
-                                  setCart((prev) =>
-                                    prev.map((ci) =>
-                                      ci.service_id === i.service_id ? { ...ci, quantity: Math.max(1, ci.quantity - 1) } : ci,
-                                    ),
-                                  )
-                                }
-                              >
-                                <Minus className="h-4 w-4" />
-                              </Button>
-                              <Input
-                                className="w-16"
-                                type="number"
-                                min={1}
-                                value={i.quantity}
-                                onChange={(e) =>
-                                  setCart((prev) =>
-                                    prev.map((ci) =>
-                                      ci.service_id === i.service_id ? { ...ci, quantity: Math.max(1, Number(e.target.value)) } : ci,
-                                    ),
-                                  )
-                                }
-                              />
-                              <Button
-                                type="button"
-                                size="icon"
-                                variant="outline"
-                                onClick={() =>
-                                  setCart((prev) =>
-                                    prev.map((ci) => (ci.service_id === i.service_id ? { ...ci, quantity: ci.quantity + 1 } : ci)),
-                                  )
-                                }
-                              >
-                                <Plus className="h-4 w-4" />
-                              </Button>
-                            </div>
-                          </td>
-                          <td className="py-2 pr-2 text-right">
-                            {(i.price * i.quantity).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                          </td>
-                          <td className="py-2 pr-2 text-right">
-                            <Button
-                              type="button"
-                              size="icon"
-                              variant="destructive"
-                              onClick={() => setCart((prev) => prev.filter((ci) => ci.service_id !== i.service_id))}
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          </td>
-                        </tr>
+                          <td className="py-3 pr-2 font-medium">{i.name}</td>
+                          <td className="py-3 pr-2">{i.area ?? '-'}</td>
+                          <td className="py-3 pr-2 text-right">
+                        {Number(i.price).toLocaleString('en-US', {
+                          minimumFractionDigits: 2,
+                          maximumFractionDigits: 2,
+                        })}
+                      </td>
+                      <td className="py-3 pr-2 text-right font-semibold">
+                        {Number(i.price).toLocaleString('en-US', {
+                          minimumFractionDigits: 2,
+                          maximumFractionDigits: 2,
+                        })}
+                      </td>
+                    </tr>
                       ))}
-
                       {cart.length === 0 && (
                         <tr>
                           <td className="py-6 text-center text-muted-foreground" colSpan={6}>

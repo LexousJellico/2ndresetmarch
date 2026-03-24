@@ -2,2666 +2,2059 @@ import type { ChangeEvent, FormEvent } from 'react';
 import { Head } from '@inertiajs/react';
 import { useMemo, useState } from 'react';
 import {
-    CalendarDays,
-    CheckCircle2,
-    Clock3,
-    Edit3,
-    Image as ImageIcon,
-    LayoutGrid,
-    Mail,
-    MapPin,
-    Megaphone,
-    Package2,
-    PanelsTopLeft,
-    Phone,
-    Plus,
-    ScrollText,
-    ShieldCheck,
-    Trash2,
-    X,
+  CalendarDays,
+  Edit3,
+  Image as ImageIcon,
+  LayoutGrid,
+  Mail,
+  MapPin,
+  Megaphone,
+  Package2,
+  Phone,
+  Plus,
+  Save,
+  ShieldCheck,
+  Trash2,
+  ChevronUp,
+  ChevronDown,
+  X,
 } from 'lucide-react';
-
-import SortOrderBoard from '@/layouts/sort-order-board';
 import AdminLayout from '@/layouts/admin-layout';
 
 type RowId = number | string;
 
 type EventRow = {
-    id: RowId;
-    title: string;
-    venue: string;
-    date: string;
-    time: string | null;
-    description: string;
-    note: string;
-    highlighted: boolean;
-    images: string[];
-    scope?: 'bccc' | 'city';
-    isPublic?: boolean;
+  id: RowId;
+  title: string;
+  venue: string;
+  date: string;
+  time: string | null;
+  description: string;
+  note: string;
+  highlighted: boolean;
+  images: string[];
+  scope?: 'bccc' | 'city';
+  isPublic?: boolean;
 };
 
 type PackageRow = {
-    id: RowId;
-    title: string;
-    description: string;
-    images: string[];
+  id: RowId;
+  title: string;
+  description: string;
+  images: string[];
 };
 
 type CalendarBlockRow = {
-    id: RowId;
-    title: string;
-    area: string;
-    block: 'AM' | 'PM' | 'EVE' | 'DAY';
-    dateFrom: string;
-    dateTo: string;
-    note: string;
-    statusColor: 'red' | 'gold' | 'blue';
+  id: RowId;
+  title: string;
+  area: string;
+  block: 'AM' | 'PM' | 'EVE' | 'DAY';
+  dateFrom: string;
+  dateTo: string;
+  note: string;
+  statusColor: 'red' | 'gold' | 'blue';
 };
 
 type SpaceRow = {
-    id: RowId;
-    title: string;
-    category: string;
-    capacity: string;
-    shortDescription: string;
-    summary: string;
-    details: string[];
-    lightImage: string;
-    darkImage: string;
-    homepageVisible: boolean;
+  id: RowId;
+  title: string;
+  category: string;
+  capacity: string;
+  shortDescription: string;
+  summary: string;
+  details: string[];
+  lightImage: string;
+  darkImage: string;
+  homepageVisible: boolean;
 };
 
 type StatRow = {
-    id: RowId;
-    label: string;
-    value: string;
-    suffix: string;
+  id: RowId;
+  label: string;
+  value: string;
+  suffix: string;
 };
 
 type SiteConfigState = {
-    mapEmbedUrl: string;
-    openMapUrl: string;
-    address: string;
-    phone: string;
-    email: string;
-    footerDescription: string;
-    footerCopyright: string;
-};
-
-type EventFormState = {
-    title: string;
-    venue: string;
-    date: string;
-    time: string;
-    description: string;
-    note: string;
-    highlighted: boolean;
-    files: File[];
-    previews: string[];
-};
-
-type PackageFormState = {
-    title: string;
-    description: string;
-    files: File[];
-    previews: string[];
-};
-
-type CalendarBlockFormState = {
-    title: string;
-    area: string;
-    block: 'AM' | 'PM' | 'EVE' | 'DAY';
-    dateFrom: string;
-    dateTo: string;
-    note: string;
-    statusColor: 'red' | 'gold' | 'blue';
-};
-
-type SpaceFormState = {
-    title: string;
-    category: string;
-    capacity: string;
-    shortDescription: string;
-    summary: string;
-    details: string;
-    homepageVisible: boolean;
-    lightFile: File | null;
-    darkFile: File | null;
-    lightPreview: string;
-    darkPreview: string;
-};
-
-type StatFormState = {
-    label: string;
-    value: string;
-    suffix: string;
+  mapEmbedUrl: string;
+  openMapUrl: string;
+  address: string;
+  phone: string;
+  email: string;
+  footerDescription: string;
+  footerCopyright: string;
 };
 
 type AdminHomePageProps = {
-    initialBcccEvents?: EventRow[];
-    initialCityEvents?: EventRow[];
-    initialPackages?: PackageRow[];
-    initialCalendarBlocks?: CalendarBlockRow[];
-    initialSpaces?: SpaceRow[];
-    initialStats?: StatRow[];
-    initialSiteConfig?: SiteConfigState;
+  initialBcccEvents?: EventRow[];
+  initialCityEvents?: EventRow[];
+  initialPackages?: PackageRow[];
+  initialCalendarBlocks?: CalendarBlockRow[];
+  initialSpaces?: SpaceRow[];
+  initialStats?: StatRow[];
+  initialSiteConfig?: SiteConfigState;
 };
 
-type NoticeState = {
-    type: 'success' | 'error';
-    text: string;
-} | null;
+type NoticeState =
+  | {
+      type: 'success' | 'error';
+      text: string;
+    }
+  | null;
 
-const initialEventForm: EventFormState = {
-    title: '',
-    venue: '',
-    date: '',
-    time: '',
-    description: '',
-    note: '',
-    highlighted: false,
-    files: [],
-    previews: [],
+type EventFormState = {
+  scope: 'bccc' | 'city';
+  title: string;
+  venue: string;
+  date: string;
+  time: string;
+  description: string;
+  note: string;
+  highlighted: boolean;
+  isPublic: boolean;
+  files: File[];
 };
 
-const initialPackageForm: PackageFormState = {
-    title: '',
-    description: '',
-    files: [],
-    previews: [],
+type PackageFormState = {
+  title: string;
+  description: string;
+  files: File[];
 };
 
-const initialCalendarBlockForm: CalendarBlockFormState = {
-    title: '',
-    area: '',
-    block: 'DAY',
-    dateFrom: '',
-    dateTo: '',
-    note: '',
-    statusColor: 'red',
+type CalendarBlockFormState = {
+  title: string;
+  area: string;
+  block: 'AM' | 'PM' | 'EVE' | 'DAY';
+  dateFrom: string;
+  dateTo: string;
+  note: string;
+  statusColor: 'red' | 'gold' | 'blue';
 };
 
-const initialSpaceForm: SpaceFormState = {
-    title: '',
-    category: '',
-    capacity: '',
-    shortDescription: '',
-    summary: '',
-    details: '',
-    homepageVisible: true,
-    lightFile: null,
-    darkFile: null,
-    lightPreview: '',
-    darkPreview: '',
+type SpaceFormState = {
+  title: string;
+  category: string;
+  capacity: string;
+  shortDescription: string;
+  summary: string;
+  detailsText: string;
+  homepageVisible: boolean;
+  lightFile: File | null;
+  darkFile: File | null;
 };
 
-const initialStatForm: StatFormState = {
-    label: '',
-    value: '',
-    suffix: '',
+type StatFormState = {
+  label: string;
+  value: string;
+  suffix: string;
+};
+
+const emptyEventForm: EventFormState = {
+  scope: 'bccc',
+  title: '',
+  venue: '',
+  date: '',
+  time: '',
+  description: '',
+  note: '',
+  highlighted: false,
+  isPublic: true,
+  files: [],
+};
+
+const emptyPackageForm: PackageFormState = {
+  title: '',
+  description: '',
+  files: [],
+};
+
+const emptyCalendarBlockForm: CalendarBlockFormState = {
+  title: '',
+  area: '',
+  block: 'DAY',
+  dateFrom: '',
+  dateTo: '',
+  note: '',
+  statusColor: 'red',
+};
+
+const emptySpaceForm: SpaceFormState = {
+  title: '',
+  category: '',
+  capacity: '',
+  shortDescription: '',
+  summary: '',
+  detailsText: '',
+  homepageVisible: true,
+  lightFile: null,
+  darkFile: null,
+};
+
+const emptyStatForm: StatFormState = {
+  label: '',
+  value: '',
+  suffix: '',
 };
 
 const fallbackSiteConfig: SiteConfigState = {
-    mapEmbedUrl:
-        'https://www.google.com/maps?q=CH3X%2BRRW%2C%20Baguio%2C%20Benguet%2C%20Philippines&z=16&output=embed',
-    openMapUrl:
-        'https://www.google.com/maps/search/?api=1&query=CH3X%2BRRW%2C%20Baguio%2C%20Benguet%2C%20Philippines',
-    address: 'CH3X+RRW, Baguio, Benguet, Philippines',
-    phone: '(074) 446 2009',
-    email: 'info@bccc-ease.com',
-    footerDescription:
-        'A public-facing venue platform for space discovery, event highlights, schedule visibility, and booking guidance for the Baguio Convention and Cultural Center.',
-    footerCopyright: '© 2026 BCCC EASE • City Government of Baguio • All Rights Reserved',
+  mapEmbedUrl:
+    'https://www.google.com/maps?q=CH3X%2BRRW%2C%20Baguio%2C%20Benguet%2C%20Philippines&z=16&output=embed',
+  openMapUrl:
+    'https://www.google.com/maps/search/?api=1&query=CH3X%2BRRW%2C%20Baguio%2C%20Benguet%2C%20Philippines',
+  address: 'CH3X+RRW, Baguio, Benguet, Philippines',
+  phone: '(074) 446 2009',
+  email: 'info@bccc-ease.com',
+  footerDescription:
+    'A public-facing venue platform for space discovery, event highlights, schedule visibility, and booking guidance for the Baguio Convention and Cultural Center.',
+  footerCopyright:
+    '© 2026 BCCC EASE • City Government of Baguio • All Rights Reserved',
 };
 
-function reorderByIds<T extends { id: RowId }>(items: T[], orderedIds: RowId[]) {
-    const map = new Map(items.map((item) => [item.id, item] as const));
-
-    return orderedIds
-        .map((id) => map.get(id))
-        .filter((item): item is T => Boolean(item));
-}
-
 function getCsrfToken() {
-    return (
-        document
-            .querySelector('meta[name="csrf-token"]')
-            ?.getAttribute('content')
-            ?.trim() ?? ''
-    );
+  return (
+    document
+      .querySelector('meta[name="csrf-token"]')
+      ?.getAttribute('content')
+      ?.trim() ?? ''
+  );
 }
 
 async function parseApiResponse(response: Response) {
-    const contentType = response.headers.get('content-type') ?? '';
+  const contentType = response.headers.get('content-type') ?? '';
 
-    if (contentType.includes('application/json')) {
-        return response.json();
-    }
+  if (contentType.includes('application/json')) {
+    return response.json();
+  }
 
-    const text = await response.text();
+  const text = await response.text();
 
-    try {
-        return JSON.parse(text);
-    } catch {
-        return { message: text || 'Unexpected server response.' };
-    }
+  try {
+    return JSON.parse(text);
+  } catch {
+    return { message: text || 'Unexpected server response.' };
+  }
 }
 
 function normalizeErrorMessage(error: unknown): string {
-    if (typeof error === 'string') {
-        return error;
-    }
+  if (typeof error === 'string') {
+    return error;
+  }
 
-    if (
-        typeof error === 'object' &&
-        error !== null &&
-        'message' in error &&
-        typeof (error as { message?: unknown }).message === 'string'
-    ) {
-        return (error as { message: string }).message;
-    }
+  if (
+    typeof error === 'object' &&
+    error !== null &&
+    'message' in error &&
+    typeof (error as { message?: unknown }).message === 'string'
+  ) {
+    return (error as { message: string }).message;
+  }
 
-    return 'Something went wrong while processing the request.';
+  return 'Something went wrong while processing the request.';
 }
 
-async function apiJson<T>(url: string, method: 'POST' | 'PUT' | 'DELETE', body?: unknown): Promise<T> {
-    const csrf = getCsrfToken();
+async function apiJson<T>(
+  url: string,
+  method: 'POST' | 'PUT' | 'DELETE',
+  body?: unknown,
+): Promise<T> {
+  const csrf = getCsrfToken();
 
-    const response = await fetch(url, {
-        method,
-        credentials: 'same-origin',
-        headers: {
-            Accept: 'application/json',
-            'Content-Type': 'application/json',
-            'X-Requested-With': 'XMLHttpRequest',
-            ...(csrf ? { 'X-CSRF-TOKEN': csrf } : {}),
-        },
-        body: body ? JSON.stringify(body) : undefined,
-    });
+  const response = await fetch(url, {
+    method,
+    credentials: 'same-origin',
+    headers: {
+      Accept: 'application/json',
+      'Content-Type': 'application/json',
+      'X-Requested-With': 'XMLHttpRequest',
+      ...(csrf ? { 'X-CSRF-TOKEN': csrf } : {}),
+    },
+    body: body ? JSON.stringify(body) : undefined,
+  });
 
-    const payload = await parseApiResponse(response);
+  const payload = await parseApiResponse(response);
 
-    if (!response.ok) {
-        throw payload;
-    }
+  if (!response.ok) {
+    throw payload;
+  }
 
-    return payload as T;
+  return payload as T;
 }
 
 async function apiFormSubmit<T>(
-    url: string,
-    formData: FormData,
-    method: 'POST' | 'PUT' = 'POST',
+  url: string,
+  formData: FormData,
+  method: 'POST' | 'PUT' = 'POST',
 ): Promise<T> {
-    const csrf = getCsrfToken();
+  const csrf = getCsrfToken();
 
-    if (method !== 'POST') {
-        formData.append('_method', method);
-    }
+  if (method !== 'POST') {
+    formData.append('_method', method);
+  }
 
-    const response = await fetch(url, {
-        method: 'POST',
-        credentials: 'same-origin',
-        headers: {
-            Accept: 'application/json',
-            'X-Requested-With': 'XMLHttpRequest',
-            ...(csrf ? { 'X-CSRF-TOKEN': csrf } : {}),
-        },
-        body: formData,
-    });
+  const response = await fetch(url, {
+    method: 'POST',
+    credentials: 'same-origin',
+    headers: {
+      Accept: 'application/json',
+      'X-Requested-With': 'XMLHttpRequest',
+      ...(csrf ? { 'X-CSRF-TOKEN': csrf } : {}),
+    },
+    body: formData,
+  });
 
-    const payload = await parseApiResponse(response);
+  const payload = await parseApiResponse(response);
 
-    if (!response.ok) {
-        throw payload;
-    }
+  if (!response.ok) {
+    throw payload;
+  }
 
-    return payload as T;
+  return payload as T;
 }
 
 function fileListToFiles(files: FileList | null, max = 3) {
-    if (!files) return [];
-    return Array.from(files).slice(0, max);
+  if (!files) return [];
+
+  return Array.from(files).slice(0, max);
 }
 
-function filesToPreviewUrls(files: File[]) {
-    return files.map((file) => URL.createObjectURL(file));
+function moveItem<T>(items: T[], index: number, direction: -1 | 1) {
+  const nextIndex = index + direction;
+
+  if (nextIndex < 0 || nextIndex >= items.length) {
+    return items;
+  }
+
+  const next = [...items];
+  const [item] = next.splice(index, 1);
+  next.splice(nextIndex, 0, item);
+
+  return next;
 }
 
-function replaceById<T extends { id: RowId }>(items: T[], nextItem: T) {
-    return items.map((item) => (item.id === nextItem.id ? nextItem : item));
+function replaceById<T extends { id: RowId }>(items: T[], row: T) {
+  return items.map((item) => (item.id === row.id ? row : item));
 }
 
-function SummaryCard({
-    icon: Icon,
-    title,
-    value,
-    note,
-    tone = 'green',
-}: {
-    icon: any;
-    title: string;
-    value: string;
-    note: string;
-    tone?: 'green' | 'blue' | 'gold';
-}) {
-    const toneClass =
-        tone === 'blue'
-            ? 'bg-[#e4eeff] text-[#1645ac] dark:bg-[#1d2943] dark:text-[#a6c0ff]'
-            : tone === 'gold'
-              ? 'bg-[#fff0c7] text-[#8a6500] dark:bg-[#322911] dark:text-[#f3d17a]'
-              : 'bg-[#e8f2ee] text-[#174f40] dark:bg-[#18231f] dark:text-[#9dc0ff]';
+function removeById<T extends { id: RowId }>(items: T[], id: RowId) {
+  return items.filter((item) => item.id !== id);
+}
 
-    return (
-        <article className="rounded-[2rem] border border-black/10 bg-white p-5 shadow-sm transition hover:-translate-y-0.5 dark:border-white/10 dark:bg-[#16171b]">
-            <div className={`inline-flex h-12 w-12 items-center justify-center rounded-2xl ${toneClass}`}>
-                <Icon className="h-5 w-5" />
-            </div>
-            <p className="mt-4 text-sm font-black uppercase tracking-[0.12em]">{title}</p>
-            <h3 className="mt-2 text-3xl font-black tracking-tight">{value}</h3>
-            <p className="mt-2 text-sm leading-7 text-[#5c5953] dark:text-[#c8c8ce]">{note}</p>
-        </article>
-    );
+function upsertById<T extends { id: RowId }>(items: T[], row: T) {
+  const exists = items.some((item) => item.id === row.id);
+
+  if (exists) {
+    return replaceById(items, row);
+  }
+
+  return [row, ...items];
 }
 
 function NoticeBanner({ notice }: { notice: NoticeState }) {
-    if (!notice) return null;
+  if (!notice) return null;
 
-    return (
-        <div
-            className={`rounded-[1.6rem] border px-5 py-4 text-sm font-medium ${
-                notice.type === 'success'
-                    ? 'border-[#bde0d0] bg-[#edf8f2] text-[#174f40] dark:border-[#294c41] dark:bg-[#16231f] dark:text-[#a8d7c4]'
-                    : 'border-[#f0c1c1] bg-[#fff1f1] text-[#9d2e2e] dark:border-[#5a2a2a] dark:bg-[#241616] dark:text-[#f3b3b3]'
-            }`}
-        >
-            {notice.text}
+  return (
+    <div
+      className={`rounded-2xl border px-4 py-3 text-sm ${
+        notice.type === 'success'
+          ? 'border-emerald-200 bg-emerald-50 text-emerald-800 dark:border-emerald-400/20 dark:bg-emerald-500/10 dark:text-emerald-200'
+          : 'border-red-200 bg-red-50 text-red-800 dark:border-red-400/20 dark:bg-red-500/10 dark:text-red-200'
+      }`}
+    >
+      {notice.text}
+    </div>
+  );
+}
+
+function SectionCard({
+  title,
+  subtitle,
+  icon: Icon,
+  children,
+}: {
+  title: string;
+  subtitle: string;
+  icon: any;
+  children: React.ReactNode;
+}) {
+  return (
+    <section className="rounded-[2rem] border border-black/5 bg-white p-6 shadow-sm dark:border-white/10 dark:bg-[#121318] sm:p-8">
+      <div className="mb-6 flex items-start gap-4">
+        <div className="inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-[#e8f2ee] text-[#174f40] dark:bg-[#18231f] dark:text-[#8ea3ff]">
+          <Icon className="h-5 w-5" />
         </div>
-    );
-}
-
-function ImagePreviewStrip({
-    images,
-    emptyLabel,
-}: {
-    images: string[];
-    emptyLabel: string;
-}) {
-    if (images.length === 0) {
-        return (
-            <div className="rounded-2xl border border-dashed border-black/10 px-4 py-5 text-sm text-[#6a665f] dark:border-white/10 dark:text-[#bdbdc4]">
-                {emptyLabel}
-            </div>
-        );
-    }
-
-    return (
-        <div className="grid grid-cols-3 gap-3">
-            {images.map((image, index) => (
-                <div
-                    key={`${image}-${index}`}
-                    className="overflow-hidden rounded-2xl border border-black/10 dark:border-white/10"
-                >
-                    <img
-                        src={image}
-                        alt={`Preview ${index + 1}`}
-                        className="h-24 w-full object-cover"
-                    />
-                </div>
-            ))}
+        <div>
+          <h2 className="text-2xl font-semibold">{title}</h2>
+          <p className="mt-1 text-sm text-slate-500 dark:text-slate-300">
+            {subtitle}
+          </p>
         </div>
-    );
+      </div>
+
+      {children}
+    </section>
+  );
 }
 
-function ActionButtons({
-    onEdit,
-    onCancelEdit,
-    isEditing,
-    onDelete,
-    deleting,
+function ImageStrip({
+  images,
+  emptyLabel,
 }: {
-    onEdit: () => void;
-    onCancelEdit: () => void;
-    isEditing: boolean;
-    onDelete: () => Promise<void>;
-    deleting: boolean;
+  images: string[];
+  emptyLabel: string;
 }) {
+  if (images.length === 0) {
     return (
-        <div className="flex items-center gap-2">
-            {!isEditing ? (
-                <button
-                    type="button"
-                    onClick={onEdit}
-                    className="inline-flex items-center gap-2 rounded-full bg-[#1d5bd8] px-3 py-2 text-xs font-semibold text-white"
-                >
-                    <Edit3 className="h-3.5 w-3.5" />
-                    Edit
-                </button>
-            ) : (
-                <button
-                    type="button"
-                    onClick={onCancelEdit}
-                    className="inline-flex items-center gap-2 rounded-full bg-[#5f5b55] px-3 py-2 text-xs font-semibold text-white"
-                >
-                    <X className="h-3.5 w-3.5" />
-                    Cancel
-                </button>
-            )}
-
-            <button
-                type="button"
-                disabled={deleting}
-                onClick={onDelete}
-                className="inline-flex items-center gap-2 rounded-full bg-[#c53434] px-3 py-2 text-xs font-semibold text-white disabled:opacity-60"
-            >
-                <Trash2 className="h-3.5 w-3.5" />
-                {deleting ? 'Deleting...' : 'Delete'}
-            </button>
-        </div>
+      <div className="rounded-2xl border border-dashed border-black/10 px-4 py-4 text-sm text-slate-500 dark:border-white/10 dark:text-slate-300">
+        {emptyLabel}
+      </div>
     );
-}
-
-function EventManagerCard({
-    title,
-    scopeLabel,
-    rows,
-    onCreate,
-    onUpdate,
-    onDelete,
-}: {
-    title: string;
-    scopeLabel: 'bccc' | 'city';
-    rows: EventRow[];
-    onCreate: (payload: EventFormState) => Promise<void>;
-    onUpdate: (id: RowId, payload: EventFormState) => Promise<void>;
-    onDelete: (id: RowId) => Promise<void>;
-}) {
-    const [form, setForm] = useState<EventFormState>(initialEventForm);
-    const [editingId, setEditingId] = useState<RowId | null>(null);
-    const [submitting, setSubmitting] = useState(false);
-    const [deletingId, setDeletingId] = useState<RowId | null>(null);
-
-    const resetForm = () => {
-        setForm(initialEventForm);
-        setEditingId(null);
-    };
-
-    const handleImages = (e: ChangeEvent<HTMLInputElement>) => {
-        const files = fileListToFiles(e.target.files, 3);
-        const previews = files.length > 0 ? filesToPreviewUrls(files) : form.previews;
-
-        setForm((prev) => ({
-            ...prev,
-            files,
-            previews,
-        }));
-    };
-
-    const startEdit = (row: EventRow) => {
-        setEditingId(row.id);
-        setForm({
-            title: row.title,
-            venue: row.venue,
-            date: row.date,
-            time: row.time ?? '',
-            description: row.description,
-            note: row.note,
-            highlighted: row.highlighted,
-            files: [],
-            previews: row.images ?? [],
-        });
-    };
-
-    const handleSubmit = async (e: FormEvent) => {
-        e.preventDefault();
-        setSubmitting(true);
-
-        try {
-            if (editingId !== null) {
-                await onUpdate(editingId, form);
-            } else {
-                await onCreate(form);
-            }
-
-            resetForm();
-        } finally {
-            setSubmitting(false);
-        }
-    };
-
-    return (
-        <article className="rounded-[2rem] border border-black/10 bg-white shadow-sm dark:border-white/10 dark:bg-[#16171b]">
-            <div className="border-b border-black/10 px-5 py-5 dark:border-white/10">
-                <div className="flex flex-wrap items-center gap-3">
-                    <span className="inline-flex rounded-full bg-[#e8f2ee] px-3 py-1 text-[11px] font-bold uppercase tracking-[0.12em] text-[#174f40] dark:bg-[#18231f] dark:text-[#9dc0ff]">
-                        {scopeLabel === 'bccc' ? 'BCCC' : 'City'}
-                    </span>
-                    <span className="inline-flex rounded-full bg-[#f7f2e8] px-3 py-1 text-[11px] font-bold uppercase tracking-[0.12em] text-[#5f5b55] dark:bg-[#1d1e23] dark:text-[#c9c9cf]">
-                        Create + Update
-                    </span>
-                </div>
-
-                <h2 className="mt-3 text-2xl font-black tracking-tight">{title}</h2>
-                <p className="mt-2 text-sm leading-7 text-[#595651] dark:text-[#c8c8ce]">
-                    Create new entries or edit existing ones. Selecting new images during edit will replace the saved images.
-                </p>
-            </div>
-
-            <div className="grid gap-6 p-5 xl:grid-cols-[0.95fr_1.05fr]">
-                <form onSubmit={handleSubmit} className="space-y-4">
-                    {editingId !== null && (
-                        <div className="rounded-[1.2rem] bg-[#eaf1ff] px-4 py-3 text-sm font-semibold text-[#1645ac] dark:bg-[#1d2943] dark:text-[#a6c0ff]">
-                            Editing existing {scopeLabel === 'bccc' ? 'BCCC' : 'City'} event
-                        </div>
-                    )}
-
-                    <div className="grid gap-4 md:grid-cols-2">
-                        <div>
-                            <label className="mb-2 block text-sm font-semibold">Title</label>
-                            <input
-                                type="text"
-                                value={form.title}
-                                onChange={(e) => setForm((prev) => ({ ...prev, title: e.target.value }))}
-                                className="w-full rounded-[1.2rem] border border-black/10 bg-[#f7f2e8] px-4 py-3 text-sm outline-none dark:border-white/10 dark:bg-[#1d1e23]"
-                            />
-                        </div>
-
-                        <div>
-                            <label className="mb-2 block text-sm font-semibold">Venue</label>
-                            <input
-                                type="text"
-                                value={form.venue}
-                                onChange={(e) => setForm((prev) => ({ ...prev, venue: e.target.value }))}
-                                className="w-full rounded-[1.2rem] border border-black/10 bg-[#f7f2e8] px-4 py-3 text-sm outline-none dark:border-white/10 dark:bg-[#1d1e23]"
-                            />
-                        </div>
-                    </div>
-
-                    <div className="grid gap-4 md:grid-cols-2">
-                        <div>
-                            <label className="mb-2 block text-sm font-semibold">Date</label>
-                            <input
-                                type="date"
-                                value={form.date}
-                                onChange={(e) => setForm((prev) => ({ ...prev, date: e.target.value }))}
-                                className="w-full rounded-[1.2rem] border border-black/10 bg-[#f7f2e8] px-4 py-3 text-sm outline-none dark:border-white/10 dark:bg-[#1d1e23]"
-                            />
-                        </div>
-
-                        <div>
-                            <label className="mb-2 block text-sm font-semibold">Time (optional)</label>
-                            <input
-                                type="time"
-                                value={form.time}
-                                onChange={(e) => setForm((prev) => ({ ...prev, time: e.target.value }))}
-                                className="w-full rounded-[1.2rem] border border-black/10 bg-[#f7f2e8] px-4 py-3 text-sm outline-none dark:border-white/10 dark:bg-[#1d1e23]"
-                            />
-                        </div>
-                    </div>
-
-                    <div>
-                        <label className="mb-2 block text-sm font-semibold">Description</label>
-                        <textarea
-                            value={form.description}
-                            onChange={(e) => setForm((prev) => ({ ...prev, description: e.target.value }))}
-                            rows={4}
-                            className="w-full rounded-[1.2rem] border border-black/10 bg-[#f7f2e8] px-4 py-3 text-sm outline-none dark:border-white/10 dark:bg-[#1d1e23]"
-                        />
-                    </div>
-
-                    <div>
-                        <label className="mb-2 block text-sm font-semibold">Note</label>
-                        <textarea
-                            value={form.note}
-                            onChange={(e) => setForm((prev) => ({ ...prev, note: e.target.value }))}
-                            rows={3}
-                            className="w-full rounded-[1.2rem] border border-black/10 bg-[#f7f2e8] px-4 py-3 text-sm outline-none dark:border-white/10 dark:bg-[#1d1e23]"
-                        />
-                    </div>
-
-                    <div>
-                        <label className="mb-2 block text-sm font-semibold">
-                            Images {editingId !== null ? '(optional replacement)' : '(max 3)'}
-                        </label>
-                        <input
-                            type="file"
-                            multiple
-                            accept="image/*"
-                            onChange={handleImages}
-                            className="block w-full rounded-[1.2rem] border border-black/10 bg-[#f7f2e8] px-4 py-3 text-sm dark:border-white/10 dark:bg-[#1d1e23]"
-                        />
-                        <div className="mt-3">
-                            <ImagePreviewStrip images={form.previews} emptyLabel="No preview images selected yet." />
-                        </div>
-                    </div>
-
-                    <label className="flex items-center gap-3 rounded-[1.2rem] bg-[#f7f2e8] px-4 py-3 text-sm dark:bg-[#1d1e23]">
-                        <input
-                            type="checkbox"
-                            checked={form.highlighted}
-                            onChange={(e) => setForm((prev) => ({ ...prev, highlighted: e.target.checked }))}
-                            className="h-4 w-4 rounded border-black/20"
-                        />
-                        <span>Mark as Highlighted Event</span>
-                    </label>
-
-                    <div className="flex flex-wrap gap-3">
-                        <button
-                            type="submit"
-                            disabled={submitting}
-                            className="inline-flex items-center gap-2 rounded-full bg-[#174f40] px-5 py-3 text-sm font-semibold text-white disabled:opacity-60 dark:bg-[#2d47ff]"
-                        >
-                            {editingId !== null ? <Edit3 className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
-                            {submitting
-                                ? editingId !== null
-                                    ? 'Updating...'
-                                    : 'Saving...'
-                                : editingId !== null
-                                  ? 'Update Event'
-                                  : `Add ${scopeLabel === 'bccc' ? 'BCCC' : 'City'} Event`}
-                        </button>
-
-                        {editingId !== null && (
-                            <button
-                                type="button"
-                                onClick={resetForm}
-                                className="inline-flex items-center gap-2 rounded-full border border-black/10 px-5 py-3 text-sm font-semibold dark:border-white/10"
-                            >
-                                <X className="h-4 w-4" />
-                                Cancel Edit
-                            </button>
-                        )}
-                    </div>
-                </form>
-
-                <div className="overflow-hidden rounded-[1.6rem] border border-black/10 dark:border-white/10">
-                    <div className="border-b border-black/10 bg-[#f7f2e8] px-4 py-4 dark:border-white/10 dark:bg-[#1d1e23]">
-                        <p className="text-sm font-black tracking-tight">
-                            Current {scopeLabel === 'bccc' ? 'BCCC' : 'City'} Events Table
-                        </p>
-                    </div>
-
-                    <div className="overflow-x-auto">
-                        <table className="min-w-full text-sm">
-                            <thead className="bg-[#fbf8f2] dark:bg-[#17181c]">
-                                <tr className="text-left">
-                                    <th className="px-4 py-3 font-bold">Title</th>
-                                    <th className="px-4 py-3 font-bold">Venue</th>
-                                    <th className="px-4 py-3 font-bold">Date</th>
-                                    <th className="px-4 py-3 font-bold">Highlight</th>
-                                    <th className="px-4 py-3 font-bold">Images</th>
-                                    <th className="px-4 py-3 font-bold">Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {rows.length > 0 ? (
-                                    rows.map((row) => (
-                                        <tr key={row.id} className="border-t border-black/10 dark:border-white/10">
-                                            <td className="px-4 py-3 font-semibold">{row.title}</td>
-                                            <td className="px-4 py-3">{row.venue}</td>
-                                            <td className="px-4 py-3">{row.date}</td>
-                                            <td className="px-4 py-3">
-                                                {row.highlighted ? (
-                                                    <span className="rounded-full bg-[#fff0c7] px-3 py-1 text-[11px] font-bold uppercase tracking-[0.12em] text-[#8a6500] dark:bg-[#322911] dark:text-[#f3d17a]">
-                                                        Yes
-                                                    </span>
-                                                ) : (
-                                                    <span className="rounded-full bg-[#f2efe8] px-3 py-1 text-[11px] font-bold uppercase tracking-[0.12em] text-[#59544d] dark:bg-[#1d1e23] dark:text-[#c9c9cf]">
-                                                        No
-                                                    </span>
-                                                )}
-                                            </td>
-                                            <td className="px-4 py-3">{row.images.length}</td>
-                                            <td className="px-4 py-3">
-                                                <ActionButtons
-                                                    onEdit={() => startEdit(row)}
-                                                    onCancelEdit={resetForm}
-                                                    isEditing={editingId === row.id}
-                                                    deleting={deletingId === row.id}
-                                                    onDelete={async () => {
-                                                        setDeletingId(row.id);
-                                                        try {
-                                                            await onDelete(row.id);
-                                                            if (editingId === row.id) {
-                                                                resetForm();
-                                                            }
-                                                        } finally {
-                                                            setDeletingId(null);
-                                                        }
-                                                    }}
-                                                />
-                                            </td>
-                                        </tr>
-                                    ))
-                                ) : (
-                                    <tr>
-                                        <td colSpan={6} className="px-4 py-6 text-center text-[#67635d] dark:text-[#bdbdc4]">
-                                            No saved {scopeLabel} events yet.
-                                        </td>
-                                    </tr>
-                                )}
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
-        </article>
-    );
-}
-
-function PackageManagerCard({
-    rows,
-    onCreate,
-    onUpdate,
-    onDelete,
-}: {
-    rows: PackageRow[];
-    onCreate: (payload: PackageFormState) => Promise<void>;
-    onUpdate: (id: RowId, payload: PackageFormState) => Promise<void>;
-    onDelete: (id: RowId) => Promise<void>;
-}) {
-    const [form, setForm] = useState<PackageFormState>(initialPackageForm);
-    const [editingId, setEditingId] = useState<RowId | null>(null);
-    const [submitting, setSubmitting] = useState(false);
-    const [deletingId, setDeletingId] = useState<RowId | null>(null);
-
-    const resetForm = () => {
-        setForm(initialPackageForm);
-        setEditingId(null);
-    };
-
-    const handleImages = (e: ChangeEvent<HTMLInputElement>) => {
-        const files = fileListToFiles(e.target.files, 3);
-        const previews = files.length > 0 ? filesToPreviewUrls(files) : form.previews;
-
-        setForm((prev) => ({
-            ...prev,
-            files,
-            previews,
-        }));
-    };
-
-    const startEdit = (row: PackageRow) => {
-        setEditingId(row.id);
-        setForm({
-            title: row.title,
-            description: row.description,
-            files: [],
-            previews: row.images ?? [],
-        });
-    };
-
-    const handleSubmit = async (e: FormEvent) => {
-        e.preventDefault();
-        setSubmitting(true);
-
-        try {
-            if (editingId !== null) {
-                await onUpdate(editingId, form);
-            } else {
-                await onCreate(form);
-            }
-
-            resetForm();
-        } finally {
-            setSubmitting(false);
-        }
-    };
-
-    return (
-        <article id="packages-config" className="rounded-[2rem] border border-black/10 bg-white shadow-sm dark:border-white/10 dark:bg-[#16171b]">
-            <div className="border-b border-black/10 px-5 py-5 dark:border-white/10">
-                <div className="flex flex-wrap items-center gap-3">
-                    <span className="inline-flex rounded-full bg-[#e8f2ee] px-3 py-1 text-[11px] font-bold uppercase tracking-[0.12em] text-[#174f40] dark:bg-[#18231f] dark:text-[#9dc0ff]">
-                        Feature Packages
-                    </span>
-                    <span className="inline-flex rounded-full bg-[#f7f2e8] px-3 py-1 text-[11px] font-bold uppercase tracking-[0.12em] text-[#5f5b55] dark:bg-[#1d1e23] dark:text-[#c9c9cf]">
-                        Create + Update
-                    </span>
-                </div>
-
-                <h2 className="mt-3 text-2xl font-black tracking-tight">Packages / Offers Config</h2>
-                <p className="mt-2 text-sm leading-7 text-[#595651] dark:text-[#c8c8ce]">
-                    Create new packages or edit existing ones. Uploading new images during edit will replace the saved package images.
-                </p>
-            </div>
-
-            <div className="grid gap-6 p-5 xl:grid-cols-[0.95fr_1.05fr]">
-                <form onSubmit={handleSubmit} className="space-y-4">
-                    {editingId !== null && (
-                        <div className="rounded-[1.2rem] bg-[#eaf1ff] px-4 py-3 text-sm font-semibold text-[#1645ac] dark:bg-[#1d2943] dark:text-[#a6c0ff]">
-                            Editing existing package
-                        </div>
-                    )}
-
-                    <div>
-                        <label className="mb-2 block text-sm font-semibold">Package Title</label>
-                        <input
-                            type="text"
-                            value={form.title}
-                            onChange={(e) => setForm((prev) => ({ ...prev, title: e.target.value }))}
-                            className="w-full rounded-[1.2rem] border border-black/10 bg-[#f7f2e8] px-4 py-3 text-sm outline-none dark:border-white/10 dark:bg-[#1d1e23]"
-                        />
-                    </div>
-
-                    <div>
-                        <label className="mb-2 block text-sm font-semibold">Description</label>
-                        <textarea
-                            value={form.description}
-                            onChange={(e) => setForm((prev) => ({ ...prev, description: e.target.value }))}
-                            rows={5}
-                            className="w-full rounded-[1.2rem] border border-black/10 bg-[#f7f2e8] px-4 py-3 text-sm outline-none dark:border-white/10 dark:bg-[#1d1e23]"
-                        />
-                    </div>
-
-                    <div>
-                        <label className="mb-2 block text-sm font-semibold">
-                            Images {editingId !== null ? '(optional replacement)' : '(max 3)'}
-                        </label>
-                        <input
-                            type="file"
-                            multiple
-                            accept="image/*"
-                            onChange={handleImages}
-                            className="block w-full rounded-[1.2rem] border border-black/10 bg-[#f7f2e8] px-4 py-3 text-sm dark:border-white/10 dark:bg-[#1d1e23]"
-                        />
-                        <div className="mt-3">
-                            <ImagePreviewStrip images={form.previews} emptyLabel="No package preview images selected yet." />
-                        </div>
-                    </div>
-
-                    <div className="flex flex-wrap gap-3">
-                        <button
-                            type="submit"
-                            disabled={submitting}
-                            className="inline-flex items-center gap-2 rounded-full bg-[#174f40] px-5 py-3 text-sm font-semibold text-white disabled:opacity-60 dark:bg-[#2d47ff]"
-                        >
-                            {editingId !== null ? <Edit3 className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
-                            {submitting
-                                ? editingId !== null
-                                    ? 'Updating...'
-                                    : 'Saving...'
-                                : editingId !== null
-                                  ? 'Update Package'
-                                  : 'Add Package'}
-                        </button>
-
-                        {editingId !== null && (
-                            <button
-                                type="button"
-                                onClick={resetForm}
-                                className="inline-flex items-center gap-2 rounded-full border border-black/10 px-5 py-3 text-sm font-semibold dark:border-white/10"
-                            >
-                                <X className="h-4 w-4" />
-                                Cancel Edit
-                            </button>
-                        )}
-                    </div>
-                </form>
-
-                <div className="overflow-hidden rounded-[1.6rem] border border-black/10 dark:border-white/10">
-                    <div className="border-b border-black/10 bg-[#f7f2e8] px-4 py-4 dark:border-white/10 dark:bg-[#1d1e23]">
-                        <p className="text-sm font-black tracking-tight">Current Packages Table</p>
-                    </div>
-
-                    <div className="overflow-x-auto">
-                        <table className="min-w-full text-sm">
-                            <thead className="bg-[#fbf8f2] dark:bg-[#17181c]">
-                                <tr className="text-left">
-                                    <th className="px-4 py-3 font-bold">Title</th>
-                                    <th className="px-4 py-3 font-bold">Description</th>
-                                    <th className="px-4 py-3 font-bold">Images</th>
-                                    <th className="px-4 py-3 font-bold">Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {rows.length > 0 ? (
-                                    rows.map((row) => (
-                                        <tr key={row.id} className="border-t border-black/10 dark:border-white/10">
-                                            <td className="px-4 py-3 font-semibold">{row.title}</td>
-                                            <td className="px-4 py-3">{row.description}</td>
-                                            <td className="px-4 py-3">{row.images.length}</td>
-                                            <td className="px-4 py-3">
-                                                <ActionButtons
-                                                    onEdit={() => startEdit(row)}
-                                                    onCancelEdit={resetForm}
-                                                    isEditing={editingId === row.id}
-                                                    deleting={deletingId === row.id}
-                                                    onDelete={async () => {
-                                                        setDeletingId(row.id);
-                                                        try {
-                                                            await onDelete(row.id);
-                                                            if (editingId === row.id) {
-                                                                resetForm();
-                                                            }
-                                                        } finally {
-                                                            setDeletingId(null);
-                                                        }
-                                                    }}
-                                                />
-                                            </td>
-                                        </tr>
-                                    ))
-                                ) : (
-                                    <tr>
-                                        <td colSpan={4} className="px-4 py-6 text-center text-[#67635d] dark:text-[#bdbdc4]">
-                                            No saved packages yet.
-                                        </td>
-                                    </tr>
-                                )}
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
-        </article>
-    );
-}
-
-function CalendarBlockManagerCard({
-    rows,
-    onCreate,
-    onUpdate,
-    onDelete,
-}: {
-    rows: CalendarBlockRow[];
-    onCreate: (payload: CalendarBlockFormState) => Promise<void>;
-    onUpdate: (id: RowId, payload: CalendarBlockFormState) => Promise<void>;
-    onDelete: (id: RowId) => Promise<void>;
-}) {
-    const [form, setForm] = useState<CalendarBlockFormState>(initialCalendarBlockForm);
-    const [editingId, setEditingId] = useState<RowId | null>(null);
-    const [submitting, setSubmitting] = useState(false);
-    const [deletingId, setDeletingId] = useState<RowId | null>(null);
-
-    const badgeClass = (status: CalendarBlockRow['statusColor']) => {
-        if (status === 'gold') {
-            return 'bg-[#fff0c7] text-[#8a6500] dark:bg-[#322911] dark:text-[#f3d17a]';
-        }
-        if (status === 'blue') {
-            return 'bg-[#e4eeff] text-[#1645ac] dark:bg-[#1d2943] dark:text-[#a6c0ff]';
-        }
-        return 'bg-[#ffe5e5] text-[#a52a2a] dark:bg-[#321818] dark:text-[#ffb1b1]';
-    };
-
-    const resetForm = () => {
-        setForm(initialCalendarBlockForm);
-        setEditingId(null);
-    };
-
-    const startEdit = (row: CalendarBlockRow) => {
-        setEditingId(row.id);
-        setForm({
-            title: row.title,
-            area: row.area,
-            block: row.block,
-            dateFrom: row.dateFrom,
-            dateTo: row.dateTo,
-            note: row.note,
-            statusColor: row.statusColor,
-        });
-    };
-
-    const handleSubmit = async (e: FormEvent) => {
-        e.preventDefault();
-        setSubmitting(true);
-
-        try {
-            if (editingId !== null) {
-                await onUpdate(editingId, form);
-            } else {
-                await onCreate(form);
-            }
-
-            resetForm();
-        } finally {
-            setSubmitting(false);
-        }
-    };
-
-    return (
-        <article id="calendar-config" className="rounded-[2rem] border border-black/10 bg-white shadow-sm dark:border-white/10 dark:bg-[#16171b]">
-            <div className="border-b border-black/10 px-5 py-5 dark:border-white/10">
-                <div className="flex flex-wrap items-center gap-3">
-                    <span className="inline-flex rounded-full bg-[#e4eeff] px-3 py-1 text-[11px] font-bold uppercase tracking-[0.12em] text-[#1645ac] dark:bg-[#1d2943] dark:text-[#a6c0ff]">
-                        Calendar Rules
-                    </span>
-                    <span className="inline-flex rounded-full bg-[#f7f2e8] px-3 py-1 text-[11px] font-bold uppercase tracking-[0.12em] text-[#5f5b55] dark:bg-[#1d1e23] dark:text-[#c9c9cf]">
-                        Create + Update
-                    </span>
-                </div>
-
-                <h2 className="mt-3 text-2xl font-black tracking-tight">Calendar Block Manager</h2>
-                <p className="mt-2 text-sm leading-7 text-[#595651] dark:text-[#c8c8ce]">
-                    Calendar rules can now be created, edited, and deleted from the same admin section.
-                </p>
-            </div>
-
-            <div className="grid gap-6 p-5 xl:grid-cols-[0.92fr_1.08fr]">
-                <form onSubmit={handleSubmit} className="space-y-4">
-                    {editingId !== null && (
-                        <div className="rounded-[1.2rem] bg-[#eaf1ff] px-4 py-3 text-sm font-semibold text-[#1645ac] dark:bg-[#1d2943] dark:text-[#a6c0ff]">
-                            Editing existing calendar rule
-                        </div>
-                    )}
-
-                    <div>
-                        <label className="mb-2 block text-sm font-semibold">Block Title</label>
-                        <input
-                            type="text"
-                            value={form.title}
-                            onChange={(e) => setForm((prev) => ({ ...prev, title: e.target.value }))}
-                            className="w-full rounded-[1.2rem] border border-black/10 bg-[#f7f2e8] px-4 py-3 text-sm outline-none dark:border-white/10 dark:bg-[#1d1e23]"
-                        />
-                    </div>
-
-                    <div>
-                        <label className="mb-2 block text-sm font-semibold">Area</label>
-                        <input
-                            type="text"
-                            value={form.area}
-                            onChange={(e) => setForm((prev) => ({ ...prev, area: e.target.value }))}
-                            className="w-full rounded-[1.2rem] border border-black/10 bg-[#f7f2e8] px-4 py-3 text-sm outline-none dark:border-white/10 dark:bg-[#1d1e23]"
-                        />
-                    </div>
-
-                    <div className="grid gap-4 md:grid-cols-2">
-                        <div>
-                            <label className="mb-2 block text-sm font-semibold">Block Type</label>
-                            <select
-                                value={form.block}
-                                onChange={(e) =>
-                                    setForm((prev) => ({
-                                        ...prev,
-                                        block: e.target.value as CalendarBlockFormState['block'],
-                                    }))
-                                }
-                                className="w-full rounded-[1.2rem] border border-black/10 bg-[#f7f2e8] px-4 py-3 text-sm outline-none dark:border-white/10 dark:bg-[#1d1e23]"
-                            >
-                                <option value="AM">AM</option>
-                                <option value="PM">PM</option>
-                                <option value="EVE">EVE</option>
-                                <option value="DAY">DAY</option>
-                            </select>
-                        </div>
-
-                        <div>
-                            <label className="mb-2 block text-sm font-semibold">Public Color Meaning</label>
-                            <select
-                                value={form.statusColor}
-                                onChange={(e) =>
-                                    setForm((prev) => ({
-                                        ...prev,
-                                        statusColor: e.target.value as CalendarBlockFormState['statusColor'],
-                                    }))
-                                }
-                                className="w-full rounded-[1.2rem] border border-black/10 bg-[#f7f2e8] px-4 py-3 text-sm outline-none dark:border-white/10 dark:bg-[#1d1e23]"
-                            >
-                                <option value="red">Red - Admin Blocked</option>
-                                <option value="gold">Gold - Private Fully Booked</option>
-                                <option value="blue">Blue - Public / Government</option>
-                            </select>
-                        </div>
-                    </div>
-
-                    <div className="grid gap-4 md:grid-cols-2">
-                        <div>
-                            <label className="mb-2 block text-sm font-semibold">Date From</label>
-                            <input
-                                type="date"
-                                value={form.dateFrom}
-                                onChange={(e) => setForm((prev) => ({ ...prev, dateFrom: e.target.value }))}
-                                className="w-full rounded-[1.2rem] border border-black/10 bg-[#f7f2e8] px-4 py-3 text-sm outline-none dark:border-white/10 dark:bg-[#1d1e23]"
-                            />
-                        </div>
-
-                        <div>
-                            <label className="mb-2 block text-sm font-semibold">Date To</label>
-                            <input
-                                type="date"
-                                value={form.dateTo}
-                                onChange={(e) => setForm((prev) => ({ ...prev, dateTo: e.target.value }))}
-                                className="w-full rounded-[1.2rem] border border-black/10 bg-[#f7f2e8] px-4 py-3 text-sm outline-none dark:border-white/10 dark:bg-[#1d1e23]"
-                            />
-                        </div>
-                    </div>
-
-                    <div>
-                        <label className="mb-2 block text-sm font-semibold">Note</label>
-                        <textarea
-                            value={form.note}
-                            onChange={(e) => setForm((prev) => ({ ...prev, note: e.target.value }))}
-                            rows={4}
-                            className="w-full rounded-[1.2rem] border border-black/10 bg-[#f7f2e8] px-4 py-3 text-sm outline-none dark:border-white/10 dark:bg-[#1d1e23]"
-                        />
-                    </div>
-
-                    <div className="flex flex-wrap gap-3">
-                        <button
-                            type="submit"
-                            disabled={submitting}
-                            className="inline-flex items-center gap-2 rounded-full bg-[#174f40] px-5 py-3 text-sm font-semibold text-white disabled:opacity-60 dark:bg-[#2d47ff]"
-                        >
-                            {editingId !== null ? <Edit3 className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
-                            {submitting
-                                ? editingId !== null
-                                    ? 'Updating...'
-                                    : 'Saving...'
-                                : editingId !== null
-                                  ? 'Update Calendar Rule'
-                                  : 'Add Calendar Rule'}
-                        </button>
-
-                        {editingId !== null && (
-                            <button
-                                type="button"
-                                onClick={resetForm}
-                                className="inline-flex items-center gap-2 rounded-full border border-black/10 px-5 py-3 text-sm font-semibold dark:border-white/10"
-                            >
-                                <X className="h-4 w-4" />
-                                Cancel Edit
-                            </button>
-                        )}
-                    </div>
-                </form>
-
-                <div className="overflow-hidden rounded-[1.6rem] border border-black/10 dark:border-white/10">
-                    <div className="border-b border-black/10 bg-[#f7f2e8] px-4 py-4 dark:border-white/10 dark:bg-[#1d1e23]">
-                        <p className="text-sm font-black tracking-tight">Calendar Rules Table</p>
-                    </div>
-
-                    <div className="overflow-x-auto">
-                        <table className="min-w-full text-sm">
-                            <thead className="bg-[#fbf8f2] dark:bg-[#17181c]">
-                                <tr className="text-left">
-                                    <th className="px-4 py-3 font-bold">Title</th>
-                                    <th className="px-4 py-3 font-bold">Area</th>
-                                    <th className="px-4 py-3 font-bold">Block</th>
-                                    <th className="px-4 py-3 font-bold">Dates</th>
-                                    <th className="px-4 py-3 font-bold">Public Color</th>
-                                    <th className="px-4 py-3 font-bold">Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {rows.length > 0 ? (
-                                    rows.map((row) => (
-                                        <tr key={row.id} className="border-t border-black/10 dark:border-white/10">
-                                            <td className="px-4 py-3 font-semibold">{row.title}</td>
-                                            <td className="px-4 py-3">{row.area}</td>
-                                            <td className="px-4 py-3">{row.block}</td>
-                                            <td className="px-4 py-3">
-                                                {row.dateFrom} → {row.dateTo}
-                                            </td>
-                                            <td className="px-4 py-3">
-                                                <span className={`rounded-full px-3 py-1 text-[11px] font-bold uppercase tracking-[0.12em] ${badgeClass(row.statusColor)}`}>
-                                                    {row.statusColor}
-                                                </span>
-                                            </td>
-                                            <td className="px-4 py-3">
-                                                <ActionButtons
-                                                    onEdit={() => startEdit(row)}
-                                                    onCancelEdit={resetForm}
-                                                    isEditing={editingId === row.id}
-                                                    deleting={deletingId === row.id}
-                                                    onDelete={async () => {
-                                                        setDeletingId(row.id);
-                                                        try {
-                                                            await onDelete(row.id);
-                                                            if (editingId === row.id) {
-                                                                resetForm();
-                                                            }
-                                                        } finally {
-                                                            setDeletingId(null);
-                                                        }
-                                                    }}
-                                                />
-                                            </td>
-                                        </tr>
-                                    ))
-                                ) : (
-                                    <tr>
-                                        <td colSpan={6} className="px-4 py-6 text-center text-[#67635d] dark:text-[#bdbdc4]">
-                                            No saved calendar rules yet.
-                                        </td>
-                                    </tr>
-                                )}
-                            </tbody>
-                        </table>
-                    </div>
-
-                    <div className="border-t border-black/10 p-4 dark:border-white/10">
-                        <div className="grid gap-3 text-xs md:grid-cols-3">
-                            <div className="rounded-2xl bg-[#ffe5e5] px-3 py-3 font-semibold text-[#a52a2a] dark:bg-[#321818] dark:text-[#ffb1b1]">
-                                Red = admin blocked / unavailable
-                            </div>
-                            <div className="rounded-2xl bg-[#fff0c7] px-3 py-3 font-semibold text-[#8a6500] dark:bg-[#322911] dark:text-[#f3d17a]">
-                                Gold = private fully booked
-                            </div>
-                            <div className="rounded-2xl bg-[#e4eeff] px-3 py-3 font-semibold text-[#1645ac] dark:bg-[#1d2943] dark:text-[#a6c0ff]">
-                                Blue = public / government event
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </article>
-    );
-}
-
-function SpacesManagerCard({
-    rows,
-    onCreate,
-    onUpdate,
-    onDelete,
-}: {
-    rows: SpaceRow[];
-    onCreate: (payload: SpaceFormState) => Promise<void>;
-    onUpdate: (id: RowId, payload: SpaceFormState) => Promise<void>;
-    onDelete: (id: RowId) => Promise<void>;
-}) {
-    const [form, setForm] = useState<SpaceFormState>(initialSpaceForm);
-    const [editingId, setEditingId] = useState<RowId | null>(null);
-    const [submitting, setSubmitting] = useState(false);
-    const [deletingId, setDeletingId] = useState<RowId | null>(null);
-
-    const resetForm = () => {
-        setForm(initialSpaceForm);
-        setEditingId(null);
-    };
-
-    const handleLightImage = (e: ChangeEvent<HTMLInputElement>) => {
-        const file = fileListToFiles(e.target.files, 1)[0] ?? null;
-
-        setForm((prev) => ({
-            ...prev,
-            lightFile: file,
-            lightPreview: file ? URL.createObjectURL(file) : prev.lightPreview,
-        }));
-    };
-
-    const handleDarkImage = (e: ChangeEvent<HTMLInputElement>) => {
-        const file = fileListToFiles(e.target.files, 1)[0] ?? null;
-
-        setForm((prev) => ({
-            ...prev,
-            darkFile: file,
-            darkPreview: file ? URL.createObjectURL(file) : prev.darkPreview,
-        }));
-    };
-
-    const startEdit = (row: SpaceRow) => {
-        setEditingId(row.id);
-        setForm({
-            title: row.title,
-            category: row.category,
-            capacity: row.capacity,
-            shortDescription: row.shortDescription,
-            summary: row.summary,
-            details: row.details.join('\n'),
-            homepageVisible: row.homepageVisible,
-            lightFile: null,
-            darkFile: null,
-            lightPreview: row.lightImage,
-            darkPreview: row.darkImage,
-        });
-    };
-
-    const handleSubmit = async (e: FormEvent) => {
-        e.preventDefault();
-        setSubmitting(true);
-
-        try {
-            if (editingId !== null) {
-                await onUpdate(editingId, form);
-            } else {
-                await onCreate(form);
-            }
-
-            resetForm();
-        } finally {
-            setSubmitting(false);
-        }
-    };
-
-    return (
-        <article id="spaces-config" className="rounded-[2rem] border border-black/10 bg-white shadow-sm dark:border-white/10 dark:bg-[#16171b]">
-            <div className="border-b border-black/10 px-5 py-5 dark:border-white/10">
-                <div className="flex flex-wrap items-center gap-3">
-                    <span className="inline-flex rounded-full bg-[#e8f2ee] px-3 py-1 text-[11px] font-bold uppercase tracking-[0.12em] text-[#174f40] dark:bg-[#18231f] dark:text-[#9dc0ff]">
-                        Spaces Content
-                    </span>
-                    <span className="inline-flex rounded-full bg-[#f7f2e8] px-3 py-1 text-[11px] font-bold uppercase tracking-[0.12em] text-[#5f5b55] dark:bg-[#1d1e23] dark:text-[#c9c9cf]">
-                        Create + Update
-                    </span>
-                </div>
-
-                <h2 className="mt-3 text-2xl font-black tracking-tight">Our Spaces Manager</h2>
-                <p className="mt-2 text-sm leading-7 text-[#595651] dark:text-[#c8c8ce]">
-                    Edit text content and replace light-mode or dark-mode images independently.
-                </p>
-            </div>
-
-            <div className="grid gap-6 p-5 xl:grid-cols-[0.95fr_1.05fr]">
-                <form onSubmit={handleSubmit} className="space-y-4">
-                    {editingId !== null && (
-                        <div className="rounded-[1.2rem] bg-[#eaf1ff] px-4 py-3 text-sm font-semibold text-[#1645ac] dark:bg-[#1d2943] dark:text-[#a6c0ff]">
-                            Editing existing space
-                        </div>
-                    )}
-
-                    <div className="grid gap-4 md:grid-cols-2">
-                        <div>
-                            <label className="mb-2 block text-sm font-semibold">Title</label>
-                            <input
-                                type="text"
-                                value={form.title}
-                                onChange={(e) => setForm((prev) => ({ ...prev, title: e.target.value }))}
-                                className="w-full rounded-[1.2rem] border border-black/10 bg-[#f7f2e8] px-4 py-3 text-sm outline-none dark:border-white/10 dark:bg-[#1d1e23]"
-                            />
-                        </div>
-
-                        <div>
-                            <label className="mb-2 block text-sm font-semibold">Category</label>
-                            <input
-                                type="text"
-                                value={form.category}
-                                onChange={(e) => setForm((prev) => ({ ...prev, category: e.target.value }))}
-                                className="w-full rounded-[1.2rem] border border-black/10 bg-[#f7f2e8] px-4 py-3 text-sm outline-none dark:border-white/10 dark:bg-[#1d1e23]"
-                            />
-                        </div>
-                    </div>
-
-                    <div>
-                        <label className="mb-2 block text-sm font-semibold">Capacity / Type</label>
-                        <input
-                            type="text"
-                            value={form.capacity}
-                            onChange={(e) => setForm((prev) => ({ ...prev, capacity: e.target.value }))}
-                            className="w-full rounded-[1.2rem] border border-black/10 bg-[#f7f2e8] px-4 py-3 text-sm outline-none dark:border-white/10 dark:bg-[#1d1e23]"
-                        />
-                    </div>
-
-                    <div>
-                        <label className="mb-2 block text-sm font-semibold">Short Description</label>
-                        <textarea
-                            value={form.shortDescription}
-                            onChange={(e) => setForm((prev) => ({ ...prev, shortDescription: e.target.value }))}
-                            rows={3}
-                            className="w-full rounded-[1.2rem] border border-black/10 bg-[#f7f2e8] px-4 py-3 text-sm outline-none dark:border-white/10 dark:bg-[#1d1e23]"
-                        />
-                    </div>
-
-                    <div>
-                        <label className="mb-2 block text-sm font-semibold">Summary</label>
-                        <textarea
-                            value={form.summary}
-                            onChange={(e) => setForm((prev) => ({ ...prev, summary: e.target.value }))}
-                            rows={3}
-                            className="w-full rounded-[1.2rem] border border-black/10 bg-[#f7f2e8] px-4 py-3 text-sm outline-none dark:border-white/10 dark:bg-[#1d1e23]"
-                        />
-                    </div>
-
-                    <div>
-                        <label className="mb-2 block text-sm font-semibold">Detail Bullets (one per line)</label>
-                        <textarea
-                            value={form.details}
-                            onChange={(e) => setForm((prev) => ({ ...prev, details: e.target.value }))}
-                            rows={5}
-                            className="w-full rounded-[1.2rem] border border-black/10 bg-[#f7f2e8] px-4 py-3 text-sm outline-none dark:border-white/10 dark:bg-[#1d1e23]"
-                        />
-                    </div>
-
-                    <div className="grid gap-4 md:grid-cols-2">
-                        <div>
-                            <label className="mb-2 block text-sm font-semibold">
-                                Light Mode Image {editingId !== null ? '(optional replacement)' : ''}
-                            </label>
-                            <input
-                                type="file"
-                                accept="image/*"
-                                onChange={handleLightImage}
-                                className="block w-full rounded-[1.2rem] border border-black/10 bg-[#f7f2e8] px-4 py-3 text-sm dark:border-white/10 dark:bg-[#1d1e23]"
-                            />
-                            <div className="mt-3">
-                                <ImagePreviewStrip
-                                    images={form.lightPreview ? [form.lightPreview] : []}
-                                    emptyLabel="No light-mode image selected yet."
-                                />
-                            </div>
-                        </div>
-
-                        <div>
-                            <label className="mb-2 block text-sm font-semibold">
-                                Dark Mode Image {editingId !== null ? '(optional replacement)' : ''}
-                            </label>
-                            <input
-                                type="file"
-                                accept="image/*"
-                                onChange={handleDarkImage}
-                                className="block w-full rounded-[1.2rem] border border-black/10 bg-[#f7f2e8] px-4 py-3 text-sm dark:border-white/10 dark:bg-[#1d1e23]"
-                            />
-                            <div className="mt-3">
-                                <ImagePreviewStrip
-                                    images={form.darkPreview ? [form.darkPreview] : []}
-                                    emptyLabel="No dark-mode image selected yet."
-                                />
-                            </div>
-                        </div>
-                    </div>
-
-                    <label className="flex items-center gap-3 rounded-[1.2rem] bg-[#f7f2e8] px-4 py-3 text-sm dark:bg-[#1d1e23]">
-                        <input
-                            type="checkbox"
-                            checked={form.homepageVisible}
-                            onChange={(e) => setForm((prev) => ({ ...prev, homepageVisible: e.target.checked }))}
-                            className="h-4 w-4 rounded border-black/20"
-                        />
-                        <span>Visible in homepage slider</span>
-                    </label>
-
-                    <div className="flex flex-wrap gap-3">
-                        <button
-                            type="submit"
-                            disabled={submitting}
-                            className="inline-flex items-center gap-2 rounded-full bg-[#174f40] px-5 py-3 text-sm font-semibold text-white disabled:opacity-60 dark:bg-[#2d47ff]"
-                        >
-                            {editingId !== null ? <Edit3 className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
-                            {submitting
-                                ? editingId !== null
-                                    ? 'Updating...'
-                                    : 'Saving...'
-                                : editingId !== null
-                                  ? 'Update Space'
-                                  : 'Add Space'}
-                        </button>
-
-                        {editingId !== null && (
-                            <button
-                                type="button"
-                                onClick={resetForm}
-                                className="inline-flex items-center gap-2 rounded-full border border-black/10 px-5 py-3 text-sm font-semibold dark:border-white/10"
-                            >
-                                <X className="h-4 w-4" />
-                                Cancel Edit
-                            </button>
-                        )}
-                    </div>
-                </form>
-
-                <div className="overflow-hidden rounded-[1.6rem] border border-black/10 dark:border-white/10">
-                    <div className="border-b border-black/10 bg-[#f7f2e8] px-4 py-4 dark:border-white/10 dark:bg-[#1d1e23]">
-                        <p className="text-sm font-black tracking-tight">Spaces Table</p>
-                    </div>
-
-                    <div className="overflow-x-auto">
-                        <table className="min-w-full text-sm">
-                            <thead className="bg-[#fbf8f2] dark:bg-[#17181c]">
-                                <tr className="text-left">
-                                    <th className="px-4 py-3 font-bold">Title</th>
-                                    <th className="px-4 py-3 font-bold">Category</th>
-                                    <th className="px-4 py-3 font-bold">Capacity</th>
-                                    <th className="px-4 py-3 font-bold">Homepage</th>
-                                    <th className="px-4 py-3 font-bold">Images</th>
-                                    <th className="px-4 py-3 font-bold">Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {rows.length > 0 ? (
-                                    rows.map((row) => (
-                                        <tr key={row.id} className="border-t border-black/10 dark:border-white/10">
-                                            <td className="px-4 py-3 font-semibold">{row.title}</td>
-                                            <td className="px-4 py-3">{row.category}</td>
-                                            <td className="px-4 py-3">{row.capacity}</td>
-                                            <td className="px-4 py-3">
-                                                {row.homepageVisible ? (
-                                                    <span className="rounded-full bg-[#e8f2ee] px-3 py-1 text-[11px] font-bold uppercase tracking-[0.12em] text-[#174f40] dark:bg-[#18231f] dark:text-[#9dc0ff]">
-                                                        Visible
-                                                    </span>
-                                                ) : (
-                                                    <span className="rounded-full bg-[#f2efe8] px-3 py-1 text-[11px] font-bold uppercase tracking-[0.12em] text-[#59544d] dark:bg-[#1d1e23] dark:text-[#c9c9cf]">
-                                                        Hidden
-                                                    </span>
-                                                )}
-                                            </td>
-                                            <td className="px-4 py-3">
-                                                {(row.lightImage ? 1 : 0) + (row.darkImage ? 1 : 0)}
-                                            </td>
-                                            <td className="px-4 py-3">
-                                                <ActionButtons
-                                                    onEdit={() => startEdit(row)}
-                                                    onCancelEdit={resetForm}
-                                                    isEditing={editingId === row.id}
-                                                    deleting={deletingId === row.id}
-                                                    onDelete={async () => {
-                                                        setDeletingId(row.id);
-                                                        try {
-                                                            await onDelete(row.id);
-                                                            if (editingId === row.id) {
-                                                                resetForm();
-                                                            }
-                                                        } finally {
-                                                            setDeletingId(null);
-                                                        }
-                                                    }}
-                                                />
-                                            </td>
-                                        </tr>
-                                    ))
-                                ) : (
-                                    <tr>
-                                        <td colSpan={6} className="px-4 py-6 text-center text-[#67635d] dark:text-[#bdbdc4]">
-                                            No saved spaces yet.
-                                        </td>
-                                    </tr>
-                                )}
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
-        </article>
-    );
-}
-
-function StatsManagerCard({
-    rows,
-    onCreate,
-    onUpdate,
-    onDelete,
-}: {
-    rows: StatRow[];
-    onCreate: (payload: StatFormState) => Promise<void>;
-    onUpdate: (id: RowId, payload: StatFormState) => Promise<void>;
-    onDelete: (id: RowId) => Promise<void>;
-}) {
-    const [form, setForm] = useState<StatFormState>(initialStatForm);
-    const [editingId, setEditingId] = useState<RowId | null>(null);
-    const [submitting, setSubmitting] = useState(false);
-    const [deletingId, setDeletingId] = useState<RowId | null>(null);
-
-    const resetForm = () => {
-        setForm(initialStatForm);
-        setEditingId(null);
-    };
-
-    const startEdit = (row: StatRow) => {
-        setEditingId(row.id);
-        setForm({
-            label: row.label,
-            value: row.value,
-            suffix: row.suffix,
-        });
-    };
-
-    const handleSubmit = async (e: FormEvent) => {
-        e.preventDefault();
-        setSubmitting(true);
-
-        try {
-            if (editingId !== null) {
-                await onUpdate(editingId, form);
-            } else {
-                await onCreate(form);
-            }
-
-            resetForm();
-        } finally {
-            setSubmitting(false);
-        }
-    };
-
-    return (
-        <article className="rounded-[2rem] border border-black/10 bg-white shadow-sm dark:border-white/10 dark:bg-[#16171b]">
-            <div className="border-b border-black/10 px-5 py-5 dark:border-white/10">
-                <div className="flex flex-wrap items-center gap-3">
-                    <span className="inline-flex rounded-full bg-[#e8f2ee] px-3 py-1 text-[11px] font-bold uppercase tracking-[0.12em] text-[#174f40] dark:bg-[#18231f] dark:text-[#9dc0ff]">
-                        Venue at a Glance
-                    </span>
-                    <span className="inline-flex rounded-full bg-[#f7f2e8] px-3 py-1 text-[11px] font-bold uppercase tracking-[0.12em] text-[#5f5b55] dark:bg-[#1d1e23] dark:text-[#c9c9cf]">
-                        Create + Update
-                    </span>
-                </div>
-
-                <h2 className="mt-3 text-2xl font-black tracking-tight">Stats Manager</h2>
-                <p className="mt-2 text-sm leading-7 text-[#595651] dark:text-[#c8c8ce]">
-                    Edit existing stat labels and values, or add new ones for the count-up section.
-                </p>
-            </div>
-
-            <div className="grid gap-6 p-5 xl:grid-cols-[0.9fr_1.1fr]">
-                <form onSubmit={handleSubmit} className="space-y-4">
-                    {editingId !== null && (
-                        <div className="rounded-[1.2rem] bg-[#eaf1ff] px-4 py-3 text-sm font-semibold text-[#1645ac] dark:bg-[#1d2943] dark:text-[#a6c0ff]">
-                            Editing existing stat
-                        </div>
-                    )}
-
-                    <div>
-                        <label className="mb-2 block text-sm font-semibold">Label</label>
-                        <input
-                            type="text"
-                            value={form.label}
-                            onChange={(e) => setForm((prev) => ({ ...prev, label: e.target.value }))}
-                            className="w-full rounded-[1.2rem] border border-black/10 bg-[#f7f2e8] px-4 py-3 text-sm outline-none dark:border-white/10 dark:bg-[#1d1e23]"
-                        />
-                    </div>
-
-                    <div className="grid gap-4 md:grid-cols-2">
-                        <div>
-                            <label className="mb-2 block text-sm font-semibold">Value</label>
-                            <input
-                                type="text"
-                                value={form.value}
-                                onChange={(e) => setForm((prev) => ({ ...prev, value: e.target.value }))}
-                                className="w-full rounded-[1.2rem] border border-black/10 bg-[#f7f2e8] px-4 py-3 text-sm outline-none dark:border-white/10 dark:bg-[#1d1e23]"
-                            />
-                        </div>
-
-                        <div>
-                            <label className="mb-2 block text-sm font-semibold">Suffix</label>
-                            <input
-                                type="text"
-                                value={form.suffix}
-                                onChange={(e) => setForm((prev) => ({ ...prev, suffix: e.target.value }))}
-                                className="w-full rounded-[1.2rem] border border-black/10 bg-[#f7f2e8] px-4 py-3 text-sm outline-none dark:border-white/10 dark:bg-[#1d1e23]"
-                            />
-                        </div>
-                    </div>
-
-                    <div className="flex flex-wrap gap-3">
-                        <button
-                            type="submit"
-                            disabled={submitting}
-                            className="inline-flex items-center gap-2 rounded-full bg-[#174f40] px-5 py-3 text-sm font-semibold text-white disabled:opacity-60 dark:bg-[#2d47ff]"
-                        >
-                            {editingId !== null ? <Edit3 className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
-                            {submitting
-                                ? editingId !== null
-                                    ? 'Updating...'
-                                    : 'Saving...'
-                                : editingId !== null
-                                  ? 'Update Stat'
-                                  : 'Add Stat'}
-                        </button>
-
-                        {editingId !== null && (
-                            <button
-                                type="button"
-                                onClick={resetForm}
-                                className="inline-flex items-center gap-2 rounded-full border border-black/10 px-5 py-3 text-sm font-semibold dark:border-white/10"
-                            >
-                                <X className="h-4 w-4" />
-                                Cancel Edit
-                            </button>
-                        )}
-                    </div>
-                </form>
-
-                <div className="overflow-hidden rounded-[1.6rem] border border-black/10 dark:border-white/10">
-                    <div className="border-b border-black/10 bg-[#f7f2e8] px-4 py-4 dark:border-white/10 dark:bg-[#1d1e23]">
-                        <p className="text-sm font-black tracking-tight">Stats Table</p>
-                    </div>
-
-                    <div className="overflow-x-auto">
-                        <table className="min-w-full text-sm">
-                            <thead className="bg-[#fbf8f2] dark:bg-[#17181c]">
-                                <tr className="text-left">
-                                    <th className="px-4 py-3 font-bold">Label</th>
-                                    <th className="px-4 py-3 font-bold">Value</th>
-                                    <th className="px-4 py-3 font-bold">Suffix</th>
-                                    <th className="px-4 py-3 font-bold">Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {rows.length > 0 ? (
-                                    rows.map((row) => (
-                                        <tr key={row.id} className="border-t border-black/10 dark:border-white/10">
-                                            <td className="px-4 py-3 font-semibold">{row.label}</td>
-                                            <td className="px-4 py-3">{row.value}</td>
-                                            <td className="px-4 py-3">{row.suffix || '—'}</td>
-                                            <td className="px-4 py-3">
-                                                <ActionButtons
-                                                    onEdit={() => startEdit(row)}
-                                                    onCancelEdit={resetForm}
-                                                    isEditing={editingId === row.id}
-                                                    deleting={deletingId === row.id}
-                                                    onDelete={async () => {
-                                                        setDeletingId(row.id);
-                                                        try {
-                                                            await onDelete(row.id);
-                                                            if (editingId === row.id) {
-                                                                resetForm();
-                                                            }
-                                                        } finally {
-                                                            setDeletingId(null);
-                                                        }
-                                                    }}
-                                                />
-                                            </td>
-                                        </tr>
-                                    ))
-                                ) : (
-                                    <tr>
-                                        <td colSpan={4} className="px-4 py-6 text-center text-[#67635d] dark:text-[#bdbdc4]">
-                                            No saved stats yet.
-                                        </td>
-                                    </tr>
-                                )}
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
-        </article>
-    );
-}
-
-function SiteDetailsCard({
-    config,
-    setConfig,
-    onSave,
-}: {
-    config: SiteConfigState;
-    setConfig: React.Dispatch<React.SetStateAction<SiteConfigState>>;
-    onSave: () => Promise<void>;
-}) {
-    const [saving, setSaving] = useState(false);
-
-    return (
-        <article id="footer-config" className="rounded-[2rem] border border-black/10 bg-white shadow-sm dark:border-white/10 dark:bg-[#16171b]">
-            <div className="border-b border-black/10 px-5 py-5 dark:border-white/10">
-                <div className="flex flex-wrap items-center gap-3">
-                    <span className="inline-flex rounded-full bg-[#fff0c7] px-3 py-1 text-[11px] font-bold uppercase tracking-[0.12em] text-[#8a6500] dark:bg-[#322911] dark:text-[#f3d17a]">
-                        Homepage + Footer
-                    </span>
-                    <span className="inline-flex rounded-full bg-[#f7f2e8] px-3 py-1 text-[11px] font-bold uppercase tracking-[0.12em] text-[#5f5b55] dark:bg-[#1d1e23] dark:text-[#c9c9cf]">
-                        Save Settings
-                    </span>
-                </div>
-
-                <h2 className="mt-3 text-2xl font-black tracking-tight">Location, Assistance, and Footer Config</h2>
-                <p className="mt-2 text-sm leading-7 text-[#595651] dark:text-[#c8c8ce]">
-                    Edit homepage map links, contact details, and improved footer content.
-                </p>
-            </div>
-
-            <div className="grid gap-6 p-5 xl:grid-cols-[0.96fr_1.04fr]">
-                <div className="space-y-4">
-                    <div>
-                        <label className="mb-2 block text-sm font-semibold">Google Map Embed URL</label>
-                        <input
-                            type="text"
-                            value={config.mapEmbedUrl}
-                            onChange={(e) => setConfig((prev) => ({ ...prev, mapEmbedUrl: e.target.value }))}
-                            className="w-full rounded-[1.2rem] border border-black/10 bg-[#f7f2e8] px-4 py-3 text-sm outline-none dark:border-white/10 dark:bg-[#1d1e23]"
-                        />
-                    </div>
-
-                    <div>
-                        <label className="mb-2 block text-sm font-semibold">Open Map URL</label>
-                        <input
-                            type="text"
-                            value={config.openMapUrl}
-                            onChange={(e) => setConfig((prev) => ({ ...prev, openMapUrl: e.target.value }))}
-                            className="w-full rounded-[1.2rem] border border-black/10 bg-[#f7f2e8] px-4 py-3 text-sm outline-none dark:border-white/10 dark:bg-[#1d1e23]"
-                        />
-                    </div>
-
-                    <div>
-                        <label className="mb-2 block text-sm font-semibold">Address</label>
-                        <textarea
-                            value={config.address}
-                            onChange={(e) => setConfig((prev) => ({ ...prev, address: e.target.value }))}
-                            rows={3}
-                            className="w-full rounded-[1.2rem] border border-black/10 bg-[#f7f2e8] px-4 py-3 text-sm outline-none dark:border-white/10 dark:bg-[#1d1e23]"
-                        />
-                    </div>
-
-                    <div className="grid gap-4 md:grid-cols-2">
-                        <div>
-                            <label className="mb-2 block text-sm font-semibold">Phone</label>
-                            <input
-                                type="text"
-                                value={config.phone}
-                                onChange={(e) => setConfig((prev) => ({ ...prev, phone: e.target.value }))}
-                                className="w-full rounded-[1.2rem] border border-black/10 bg-[#f7f2e8] px-4 py-3 text-sm outline-none dark:border-white/10 dark:bg-[#1d1e23]"
-                            />
-                        </div>
-
-                        <div>
-                            <label className="mb-2 block text-sm font-semibold">Email</label>
-                            <input
-                                type="text"
-                                value={config.email}
-                                onChange={(e) => setConfig((prev) => ({ ...prev, email: e.target.value }))}
-                                className="w-full rounded-[1.2rem] border border-black/10 bg-[#f7f2e8] px-4 py-3 text-sm outline-none dark:border-white/10 dark:bg-[#1d1e23]"
-                            />
-                        </div>
-                    </div>
-
-                    <div>
-                        <label className="mb-2 block text-sm font-semibold">Footer Description</label>
-                        <textarea
-                            value={config.footerDescription}
-                            onChange={(e) => setConfig((prev) => ({ ...prev, footerDescription: e.target.value }))}
-                            rows={4}
-                            className="w-full rounded-[1.2rem] border border-black/10 bg-[#f7f2e8] px-4 py-3 text-sm outline-none dark:border-white/10 dark:bg-[#1d1e23]"
-                        />
-                    </div>
-
-                    <div>
-                        <label className="mb-2 block text-sm font-semibold">Footer Copyright</label>
-                        <input
-                            type="text"
-                            value={config.footerCopyright}
-                            onChange={(e) => setConfig((prev) => ({ ...prev, footerCopyright: e.target.value }))}
-                            className="w-full rounded-[1.2rem] border border-black/10 bg-[#f7f2e8] px-4 py-3 text-sm outline-none dark:border-white/10 dark:bg-[#1d1e23]"
-                        />
-                    </div>
-
-                    <button
-                        type="button"
-                        disabled={saving}
-                        onClick={async () => {
-                            setSaving(true);
-                            try {
-                                await onSave();
-                            } finally {
-                                setSaving(false);
-                            }
-                        }}
-                        className="inline-flex items-center gap-2 rounded-full bg-[#174f40] px-5 py-3 text-sm font-semibold text-white disabled:opacity-60 dark:bg-[#2d47ff]"
-                    >
-                        <CheckCircle2 className="h-4 w-4" />
-                        {saving ? 'Saving...' : 'Save Site Settings'}
-                    </button>
-                </div>
-
-                <div className="space-y-4">
-                    <div className="rounded-[1.6rem] bg-[#f7f2e8] p-5 dark:bg-[#1d1e23]">
-                        <p className="text-xs font-black uppercase tracking-[0.14em] text-[#174f40] dark:text-[#9dc0ff]">
-                            Homepage Map Preview Data
-                        </p>
-
-                        <div className="mt-4 space-y-3 text-sm text-[#595651] dark:text-[#c8c8ce]">
-                            <div className="flex items-start gap-3 rounded-2xl bg-white/75 px-4 py-3 dark:bg-[#17181c]">
-                                <MapPin className="mt-0.5 h-4 w-4 shrink-0" />
-                                <span>{config.address}</span>
-                            </div>
-
-                            <div className="flex items-center gap-3 rounded-2xl bg-white/75 px-4 py-3 dark:bg-[#17181c]">
-                                <Phone className="h-4 w-4 shrink-0" />
-                                <span>{config.phone}</span>
-                            </div>
-
-                            <div className="flex items-center gap-3 rounded-2xl bg-white/75 px-4 py-3 dark:bg-[#17181c]">
-                                <Mail className="h-4 w-4 shrink-0" />
-                                <span>{config.email}</span>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div className="rounded-[1.6rem] border border-black/10 p-5 dark:border-white/10">
-                        <p className="text-xs font-black uppercase tracking-[0.14em] text-[#174f40] dark:text-[#9dc0ff]">
-                            Footer Preview Text
-                        </p>
-                        <p className="mt-3 text-sm leading-7 text-[#595651] dark:text-[#c8c8ce]">
-                            {config.footerDescription}
-                        </p>
-                        <div className="mt-4 rounded-2xl bg-[#f7f2e8] px-4 py-3 text-sm dark:bg-[#1d1e23]">
-                            {config.footerCopyright}
-                        </div>
-                    </div>
-
-                    <div className="rounded-[1.6rem] border border-dashed border-black/10 p-5 text-sm leading-7 text-[#5f5b55] dark:border-white/10 dark:text-[#c8c8ce]">
-                        This section stays connected to the site settings table and updates immediately after saving.
-                    </div>
-                </div>
-            </div>
-        </article>
-    );
+  }
+
+  return (
+    <div className="flex flex-wrap gap-3">
+      {images.map((image, index) => (
+        <img
+          key={`${image}-${index}`}
+          src={image}
+          alt={`Preview ${index + 1}`}
+          className="h-20 w-28 rounded-2xl border border-black/10 object-cover dark:border-white/10"
+        />
+      ))}
+    </div>
+  );
 }
 
 export default function AdminHomePage({
-    initialBcccEvents = [],
-    initialCityEvents = [],
-    initialPackages = [],
-    initialCalendarBlocks = [],
-    initialSpaces = [],
-    initialStats = [],
-    initialSiteConfig = fallbackSiteConfig,
+  initialBcccEvents = [],
+  initialCityEvents = [],
+  initialPackages = [],
+  initialCalendarBlocks = [],
+  initialSpaces = [],
+  initialStats = [],
+  initialSiteConfig = fallbackSiteConfig,
 }: AdminHomePageProps) {
-    const [bcccEvents, setBcccEvents] = useState<EventRow[]>(initialBcccEvents);
-    const [cityEvents, setCityEvents] = useState<EventRow[]>(initialCityEvents);
-    const [packages, setPackages] = useState<PackageRow[]>(initialPackages);
-    const [calendarBlocks, setCalendarBlocks] = useState<CalendarBlockRow[]>(initialCalendarBlocks);
-    const [spaces, setSpaces] = useState<SpaceRow[]>(initialSpaces);
-    const [stats, setStats] = useState<StatRow[]>(initialStats);
-    const [siteConfig, setSiteConfig] = useState<SiteConfigState>(initialSiteConfig);
-    const [notice, setNotice] = useState<NoticeState>(null);
-
-    const totals = useMemo(
-        () => ({
-            bccc: bcccEvents.length,
-            city: cityEvents.length,
-            packages: packages.length,
-            calendarBlocks: calendarBlocks.length,
-            spaces: spaces.length,
-            stats: stats.length,
-        }),
-        [
-            bcccEvents.length,
-            cityEvents.length,
-            packages.length,
-            calendarBlocks.length,
-            spaces.length,
-            stats.length,
-        ],
-    );
-
-    const announceSuccess = (text: string) => setNotice({ type: 'success', text });
-    const announceError = (error: unknown) =>
-        setNotice({ type: 'error', text: normalizeErrorMessage(error) });
-        const persistSort = async (url: string, body: Record<string, unknown>) => {
-        await apiJson(url, 'POST', body);
-    };
-
-    const reorderBcccEvents = async (orderedIds: RowId[]) => {
-        const previous = bcccEvents;
-        const next = reorderByIds(previous, orderedIds);
-        setBcccEvents(next);
-
-        try {
-            await persistSort('/admin/sort/events', {
-                scope: 'bccc',
-                ordered_ids: orderedIds,
-            });
-            announceSuccess('BCCC event order updated.');
-        } catch (error) {
-            setBcccEvents(previous);
-            announceError(error);
-            throw error;
-        }
-    };
-
-    const reorderCityEvents = async (orderedIds: RowId[]) => {
-        const previous = cityEvents;
-        const next = reorderByIds(previous, orderedIds);
-        setCityEvents(next);
-
-        try {
-            await persistSort('/admin/sort/events', {
-                scope: 'city',
-                ordered_ids: orderedIds,
-            });
-            announceSuccess('City event order updated.');
-        } catch (error) {
-            setCityEvents(previous);
-            announceError(error);
-            throw error;
-        }
-    };
-
-    const reorderPackages = async (orderedIds: RowId[]) => {
-        const previous = packages;
-        const next = reorderByIds(previous, orderedIds);
-        setPackages(next);
-
-        try {
-            await persistSort('/admin/sort/packages', {
-                ordered_ids: orderedIds,
-            });
-            announceSuccess('Package order updated.');
-        } catch (error) {
-            setPackages(previous);
-            announceError(error);
-            throw error;
-        }
-    };
-
-    const reorderSpaces = async (orderedIds: RowId[]) => {
-        const previous = spaces;
-        const next = reorderByIds(previous, orderedIds);
-        setSpaces(next);
-
-        try {
-            await persistSort('/admin/sort/spaces', {
-                ordered_ids: orderedIds,
-            });
-            announceSuccess('Space order updated.');
-        } catch (error) {
-            setSpaces(previous);
-            announceError(error);
-            throw error;
-        }
-    };
-
-    const reorderStats = async (orderedIds: RowId[]) => {
-        const previous = stats;
-        const next = reorderByIds(previous, orderedIds);
-        setStats(next);
-
-        try {
-            await persistSort('/admin/sort/stats', {
-                ordered_ids: orderedIds,
-            });
-            announceSuccess('Homepage stat order updated.');
-        } catch (error) {
-            setStats(previous);
-            announceError(error);
-            throw error;
-        }
-    };
-    const createEvent = async (scope: 'bccc' | 'city', payload: EventFormState) => {
-        try {
-            const formData = new FormData();
-            formData.append('scope', scope);
-            formData.append('title', payload.title);
-            formData.append('venue', payload.venue);
-            formData.append('date', payload.date);
-            formData.append('time', payload.time);
-            formData.append('description', payload.description);
-            formData.append('note', payload.note);
-            formData.append('highlighted', payload.highlighted ? '1' : '0');
-            formData.append('is_public', '1');
-
-            payload.files.slice(0, 3).forEach((file) => {
-                formData.append('images[]', file);
-            });
-
-            const data = await apiFormSubmit<{ item: EventRow }>('/admin/events', formData);
-            const item = data.item;
-
-            if (scope === 'bccc') {
-                setBcccEvents((prev) => [item, ...prev]);
-            } else {
-                setCityEvents((prev) => [item, ...prev]);
-            }
-
-            announceSuccess(`${scope === 'bccc' ? 'BCCC' : 'City'} event saved successfully.`);
-        } catch (error) {
-            announceError(error);
-            throw error;
-        }
-    };
-
-    const updateEvent = async (scope: 'bccc' | 'city', id: RowId, payload: EventFormState) => {
-        try {
-            const formData = new FormData();
-            formData.append('scope', scope);
-            formData.append('title', payload.title);
-            formData.append('venue', payload.venue);
-            formData.append('date', payload.date);
-            formData.append('time', payload.time);
-            formData.append('description', payload.description);
-            formData.append('note', payload.note);
-            formData.append('highlighted', payload.highlighted ? '1' : '0');
-            formData.append('is_public', '1');
-
-            payload.files.slice(0, 3).forEach((file) => {
-                formData.append('images[]', file);
-            });
-
-            const data = await apiFormSubmit<{ item: EventRow }>(`/admin/events/${id}`, formData, 'PUT');
-            const item = data.item;
-
-            if (scope === 'bccc') {
-                setBcccEvents((prev) => replaceById(prev, item));
-            } else {
-                setCityEvents((prev) => replaceById(prev, item));
-            }
-
-            announceSuccess('Event updated successfully.');
-        } catch (error) {
-            announceError(error);
-            throw error;
-        }
-    };
-
-    const deleteEvent = async (scope: 'bccc' | 'city', id: RowId) => {
-        try {
-            await apiJson(`/admin/events/${id}`, 'DELETE');
-
-            if (scope === 'bccc') {
-                setBcccEvents((prev) => prev.filter((item) => item.id !== id));
-            } else {
-                setCityEvents((prev) => prev.filter((item) => item.id !== id));
-            }
-
-            announceSuccess('Event deleted successfully.');
-        } catch (error) {
-            announceError(error);
-            throw error;
-        }
-    };
-
-    const createPackage = async (payload: PackageFormState) => {
-        try {
-            const formData = new FormData();
-            formData.append('title', payload.title);
-            formData.append('description', payload.description);
-
-            payload.files.slice(0, 3).forEach((file) => {
-                formData.append('images[]', file);
-            });
-
-            const data = await apiFormSubmit<{ item: PackageRow }>('/admin/packages', formData);
-            setPackages((prev) => [data.item, ...prev]);
-            announceSuccess('Package saved successfully.');
-        } catch (error) {
-            announceError(error);
-            throw error;
-        }
-    };
-
-    const updatePackage = async (id: RowId, payload: PackageFormState) => {
-        try {
-            const formData = new FormData();
-            formData.append('title', payload.title);
-            formData.append('description', payload.description);
-
-            payload.files.slice(0, 3).forEach((file) => {
-                formData.append('images[]', file);
-            });
-
-            const data = await apiFormSubmit<{ item: PackageRow }>(`/admin/packages/${id}`, formData, 'PUT');
-            setPackages((prev) => replaceById(prev, data.item));
-            announceSuccess('Package updated successfully.');
-        } catch (error) {
-            announceError(error);
-            throw error;
-        }
-    };
-
-    const deletePackage = async (id: RowId) => {
-        try {
-            await apiJson(`/admin/packages/${id}`, 'DELETE');
-            setPackages((prev) => prev.filter((item) => item.id !== id));
-            announceSuccess('Package deleted successfully.');
-        } catch (error) {
-            announceError(error);
-            throw error;
-        }
-    };
-
-    const createCalendarBlock = async (payload: CalendarBlockFormState) => {
-        try {
-            const data = await apiJson<{
-                block: {
-                    id: RowId;
-                    title: string;
-                    area: string;
-                    note?: string;
-                    block: 'AM' | 'PM' | 'EVE' | 'DAY';
-                    public_status: 'red' | 'gold' | 'blue';
-                    date_from: string;
-                    date_to: string;
-                };
-            }>('/calendar-blocks', 'POST', {
-                title: payload.title,
-                area: payload.area,
-                notes: payload.note,
-                block: payload.block,
-                public_status: payload.statusColor,
-                date_from: payload.dateFrom,
-                date_to: payload.dateTo,
-            });
-
-            const item: CalendarBlockRow = {
-                id: data.block.id,
-                title: data.block.title,
-                area: data.block.area,
-                note: data.block.note ?? '',
-                block: data.block.block,
-                statusColor: data.block.public_status,
-                dateFrom: data.block.date_from,
-                dateTo: data.block.date_to,
-            };
-
-            setCalendarBlocks((prev) => [item, ...prev]);
-            announceSuccess('Calendar rule saved successfully.');
-        } catch (error) {
-            announceError(error);
-            throw error;
-        }
-    };
-        const updateCalendarBlock = async (id: RowId, payload: CalendarBlockFormState) => {
-        try {
-            const data = await apiJson<{
-                block: {
-                    id: RowId;
-                    title: string;
-                    area: string;
-                    note?: string;
-                    block: 'AM' | 'PM' | 'EVE' | 'DAY';
-                    public_status: 'red' | 'gold' | 'blue';
-                    date_from: string;
-                    date_to: string;
-                };
-            }>(`/calendar-blocks/${id}`, 'PUT', {
-                title: payload.title,
-                area: payload.area,
-                notes: payload.note,
-                block: payload.block,
-                public_status: payload.statusColor,
-                date_from: payload.dateFrom,
-                date_to: payload.dateTo,
-            });
-
-            const item: CalendarBlockRow = {
-                id: data.block.id,
-                title: data.block.title,
-                area: data.block.area,
-                note: data.block.note ?? '',
-                block: data.block.block,
-                statusColor: data.block.public_status,
-                dateFrom: data.block.date_from,
-                dateTo: data.block.date_to,
-            };
-
-            setCalendarBlocks((prev) => replaceById(prev, item));
-            announceSuccess('Calendar rule updated successfully.');
-        } catch (error) {
-            announceError(error);
-            throw error;
-        }
-    };
-    const deleteCalendarBlock = async (id: RowId) => {
-        try {
-            await apiJson(`/calendar-blocks/${id}`, 'DELETE');
-            setCalendarBlocks((prev) => prev.filter((item) => item.id !== id));
-            announceSuccess('Calendar rule deleted successfully.');
-        } catch (error) {
-            announceError(error);
-            throw error;
-        }
-    };
-
-    const createSpace = async (payload: SpaceFormState) => {
-        try {
-            const formData = new FormData();
-            formData.append('title', payload.title);
-            formData.append('category', payload.category);
-            formData.append('capacity', payload.capacity);
-            formData.append('short_description', payload.shortDescription);
-            formData.append('summary', payload.summary);
-            formData.append('homepage_visible', payload.homepageVisible ? '1' : '0');
-
-            payload.details
-                .split('\n')
-                .map((line) => line.trim())
-                .filter(Boolean)
-                .forEach((detail, index) => {
-                    formData.append(`details[${index}]`, detail);
-                });
-
-            if (payload.lightFile) {
-                formData.append('light_image', payload.lightFile);
-            }
-
-            if (payload.darkFile) {
-                formData.append('dark_image', payload.darkFile);
-            }
-
-            const data = await apiFormSubmit<{ item: SpaceRow }>('/admin/spaces', formData);
-            setSpaces((prev) => [data.item, ...prev]);
-            announceSuccess('Space saved successfully.');
-        } catch (error) {
-            announceError(error);
-            throw error;
-        }
-    };
-
-    const updateSpace = async (id: RowId, payload: SpaceFormState) => {
-        try {
-            const formData = new FormData();
-            formData.append('title', payload.title);
-            formData.append('category', payload.category);
-            formData.append('capacity', payload.capacity);
-            formData.append('short_description', payload.shortDescription);
-            formData.append('summary', payload.summary);
-            formData.append('homepage_visible', payload.homepageVisible ? '1' : '0');
-
-            payload.details
-                .split('\n')
-                .map((line) => line.trim())
-                .filter(Boolean)
-                .forEach((detail, index) => {
-                    formData.append(`details[${index}]`, detail);
-                });
-
-            if (payload.lightFile) {
-                formData.append('light_image', payload.lightFile);
-            }
-
-            if (payload.darkFile) {
-                formData.append('dark_image', payload.darkFile);
-            }
-
-            const data = await apiFormSubmit<{ item: SpaceRow }>(`/admin/spaces/${id}`, formData, 'PUT');
-            setSpaces((prev) => replaceById(prev, data.item));
-            announceSuccess('Space updated successfully.');
-        } catch (error) {
-            announceError(error);
-            throw error;
-        }
-    };
-
-    const deleteSpace = async (id: RowId) => {
-        try {
-            await apiJson(`/admin/spaces/${id}`, 'DELETE');
-            setSpaces((prev) => prev.filter((item) => item.id !== id));
-            announceSuccess('Space deleted successfully.');
-        } catch (error) {
-            announceError(error);
-            throw error;
-        }
-    };
-
-    const createStat = async (payload: StatFormState) => {
-        try {
-            const data = await apiJson<{ item: StatRow }>('/admin/stats', 'POST', {
-                label: payload.label,
-                value: payload.value,
-                suffix: payload.suffix,
-            });
-
-            setStats((prev) => [data.item, ...prev]);
-            announceSuccess('Homepage stat saved successfully.');
-        } catch (error) {
-            announceError(error);
-            throw error;
-        }
-    };
-
-    const updateStat = async (id: RowId, payload: StatFormState) => {
-        try {
-            const data = await apiJson<{ item: StatRow }>(`/admin/stats/${id}`, 'PUT', {
-                label: payload.label,
-                value: payload.value,
-                suffix: payload.suffix,
-            });
-
-            setStats((prev) => replaceById(prev, data.item));
-            announceSuccess('Homepage stat updated successfully.');
-        } catch (error) {
-            announceError(error);
-            throw error;
-        }
-    };
-
-    const deleteStat = async (id: RowId) => {
-        try {
-            await apiJson(`/admin/stats/${id}`, 'DELETE');
-            setStats((prev) => prev.filter((item) => item.id !== id));
-            announceSuccess('Homepage stat deleted successfully.');
-        } catch (error) {
-            announceError(error);
-            throw error;
-        }
-    };
-
-    const saveSiteSettings = async () => {
-        try {
-            const data = await apiJson<{ item: SiteConfigState }>('/admin/site-settings', 'PUT', {
-                map_embed_url: siteConfig.mapEmbedUrl,
-                open_map_url: siteConfig.openMapUrl,
-                address: siteConfig.address,
-                phone: siteConfig.phone,
-                email: siteConfig.email,
-                footer_description: siteConfig.footerDescription,
-                footer_copyright: siteConfig.footerCopyright,
-            });
-
-            setSiteConfig(data.item);
-            announceSuccess('Site settings saved successfully.');
-        } catch (error) {
-            announceError(error);
-            throw error;
-        }
-    };
-
-    return (
-        <AdminLayout
-            title="Frontend Admin Home and Config Console"
-            subtitle="This polish version adds update buttons, replacement-image editing, and cleaner admin table workflow while keeping the same connected backend."
-        >
-            <Head title="Admin Home" />
-
-            <div className="space-y-6">
-                <NoticeBanner notice={notice} />
-
-                <section className="grid gap-5 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-6">
-                    <SummaryCard
-                        icon={Megaphone}
-                        title="BCCC Events"
-                        value={String(totals.bccc)}
-                        note="Saved convention-center public event rows"
-                    />
-                    <SummaryCard
-                        icon={ScrollText}
-                        title="City Events"
-                        value={String(totals.city)}
-                        note="Saved Baguio City public event rows"
-                        tone="blue"
-                    />
-                    <SummaryCard
-                        icon={Package2}
-                        title="Packages"
-                        value={String(totals.packages)}
-                        note="Saved feature package rows"
-                    />
-                    <SummaryCard
-                        icon={CalendarDays}
-                        title="Calendar Rules"
-                        value={String(totals.calendarBlocks)}
-                        note="Saved red, gold, and blue rules"
-                        tone="gold"
-                    />
-                    <SummaryCard
-                        icon={LayoutGrid}
-                        title="Spaces"
-                        value={String(totals.spaces)}
-                        note="Saved homepage slider and facility rows"
-                    />
-                    <SummaryCard
-                        icon={PanelsTopLeft}
-                        title="Homepage Stats"
-                        value={String(totals.stats)}
-                        note="Saved animated count rows"
-                    />
-                </section>
-
-                <section id="events-config" className="space-y-6">
-                    <div className="rounded-[2rem] border border-black/10 bg-white p-5 shadow-sm dark:border-white/10 dark:bg-[#16171b]">
-                        <p className="text-xs font-black uppercase tracking-[0.18em] text-[#174f40] dark:text-[#9dc0ff]">
-                            Config Section
-                        </p>
-                        <h2 className="mt-2 text-2xl font-black tracking-tight">Events Manager</h2>
-                        <p className="mt-3 text-sm leading-7 text-[#595651] dark:text-[#c8c8ce]">
-                            This stays separated into BCCC Events and Baguio City Events, now with inline edit/update support.
-                        </p>
-                    </div>
-
-                    <EventManagerCard
-                        title="BCCC Events Form and Table"
-                        scopeLabel="bccc"
-                        rows={bcccEvents}
-                        onCreate={(payload) => createEvent('bccc', payload)}
-                        onUpdate={(id, payload) => updateEvent('bccc', id, payload)}
-                        onDelete={(id) => deleteEvent('bccc', id)}
-                    />
-
-                    <EventManagerCard
-                        title="Baguio City Events Form and Table"
-                        scopeLabel="city"
-                        rows={cityEvents}
-                        onCreate={(payload) => createEvent('city', payload)}
-                        onUpdate={(id, payload) => updateEvent('city', id, payload)}
-                        onDelete={(id) => deleteEvent('city', id)}
-                    />
-                </section>
-
-                <PackageManagerCard
-                    rows={packages}
-                    onCreate={createPackage}
-                    onUpdate={updatePackage}
-                    onDelete={deletePackage}
-                />
-
-                <CalendarBlockManagerCard
-                    rows={calendarBlocks}
-                    onCreate={createCalendarBlock}
-                    onUpdate={updateCalendarBlock}
-                    onDelete={deleteCalendarBlock}
-                />
-
-                <SpacesManagerCard
-                    rows={spaces}
-                    onCreate={createSpace}
-                    onUpdate={updateSpace}
-                    onDelete={deleteSpace}
-                />
-
-                <section id="homepage-config" className="grid gap-6 xl:grid-cols-2">
-                    <StatsManagerCard
-                        rows={stats}
-                        onCreate={createStat}
-                        onUpdate={updateStat}
-                        onDelete={deleteStat}
-                    />
-
-                    <SiteDetailsCard
-                        config={siteConfig}
-                        setConfig={setSiteConfig}
-                        onSave={saveSiteSettings}
-                    />
-                </section>
-                                <section id="sort-config" className="grid gap-6 xl:grid-cols-2">
-                    <SortOrderBoard
-                        title="BCCC Events Display Order"
-                        description="Drag or move the saved BCCC event cards to control how they appear in the admin-managed ordering."
-                        items={bcccEvents.map((item) => ({
-                            id: item.id,
-                            title: item.title,
-                            subtitle: item.date,
-                        }))}
-                        onReorder={reorderBcccEvents}
-                    />
-
-                    <SortOrderBoard
-                        title="Baguio City Events Display Order"
-                        description="Adjust the ordering of city event cards for the public-facing event flow."
-                        items={cityEvents.map((item) => ({
-                            id: item.id,
-                            title: item.title,
-                            subtitle: item.date,
-                        }))}
-                        onReorder={reorderCityEvents}
-                    />
-
-                    <SortOrderBoard
-                        title="Package Display Order"
-                        description="Set the order for special offers and package cards."
-                        items={packages.map((item) => ({
-                            id: item.id,
-                            title: item.title,
-                            subtitle: 'Feature package',
-                        }))}
-                        onReorder={reorderPackages}
-                    />
-
-                    <SortOrderBoard
-                        title="Spaces Display Order"
-                        description="Set the order for venue spaces shown on the public facilities and homepage space flows."
-                        items={spaces.map((item) => ({
-                            id: item.id,
-                            title: item.title,
-                            subtitle: item.category,
-                        }))}
-                        onReorder={reorderSpaces}
-                    />
-
-                    <SortOrderBoard
-                        title="Homepage Stats Display Order"
-                        description="Set the order for the Venue at a Glance count-up cards."
-                        items={stats.map((item) => ({
-                            id: item.id,
-                            title: item.label,
-                            subtitle: `${item.value}${item.suffix ?? ''}`,
-                        }))}
-                        onReorder={reorderStats}
-                    />
-                </section>
-                <section id="system-config" className="rounded-[2rem] border border-black/10 bg-white p-6 shadow-sm dark:border-white/10 dark:bg-[#16171b]">
-                    <p className="text-xs font-black uppercase tracking-[0.18em] text-[#174f40] dark:text-[#9dc0ff]">
-                        Polish Status
-                    </p>
-                    <h2 className="mt-2 text-2xl font-black tracking-tight">What this pass adds</h2>
-
-                    <div className="mt-5 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-                        <div className="rounded-[1.4rem] bg-[#f7f2e8] p-4 transition hover:-translate-y-0.5 dark:bg-[#1d1e23]">
-                            <p className="flex items-center gap-2 text-sm font-bold">
-                                <Edit3 className="h-4 w-4 text-[#174f40] dark:text-[#9dc0ff]" />
-                                Real update buttons
-                            </p>
-                            <p className="mt-3 text-sm leading-7 text-[#595651] dark:text-[#c8c8ce]">
-                                Events, packages, spaces, and stats can now be edited and updated instead of only created or deleted.
-                            </p>
-                        </div>
-
-                        <div className="rounded-[1.4rem] bg-[#f7f2e8] p-4 transition hover:-translate-y-0.5 dark:bg-[#1d1e23]">
-                            <p className="flex items-center gap-2 text-sm font-bold">
-                                <ImageIcon className="h-4 w-4 text-[#174f40] dark:text-[#9dc0ff]" />
-                                Replacement image UI
-                            </p>
-                            <p className="mt-3 text-sm leading-7 text-[#595651] dark:text-[#c8c8ce]">
-                                Existing images now appear in the edit form preview, and new uploads can replace them cleanly.
-                            </p>
-                        </div>
-
-                        <div className="rounded-[1.4rem] bg-[#f7f2e8] p-4 transition hover:-translate-y-0.5 dark:bg-[#1d1e23]">
-                            <p className="flex items-center gap-2 text-sm font-bold">
-                                <Clock3 className="h-4 w-4 text-[#174f40] dark:text-[#9dc0ff]" />
-                                Calendar rules note
-                            </p>
-                            <p className="mt-3 text-sm leading-7 text-[#595651] dark:text-[#c8c8ce]">
-                                Calendar rules remain create/delete only in this pass because no update endpoint was part of the currently visible route set.
-                            </p>
-                        </div>
-
-                        <div className="rounded-[1.4rem] bg-[#f7f2e8] p-4 transition hover:-translate-y-0.5 dark:bg-[#1d1e23]">
-                            <p className="flex items-center gap-2 text-sm font-bold">
-                                <ShieldCheck className="h-4 w-4 text-[#174f40] dark:text-[#9dc0ff]" />
-                                Cleaner admin workflow
-                            </p>
-                            <p className="mt-3 text-sm leading-7 text-[#595651] dark:text-[#c8c8ce]">
-                                Each section now uses a single create/edit form instead of forcing a separate update page.
-                            </p>
-                        </div>
-
-                        <div className="rounded-[1.4rem] bg-[#f7f2e8] p-4 transition hover:-translate-y-0.5 dark:bg-[#1d1e23]">
-                            <p className="flex items-center gap-2 text-sm font-bold">
-                                <PanelsTopLeft className="h-4 w-4 text-[#174f40] dark:text-[#9dc0ff]" />
-                                Same backend, smoother UI
-                            </p>
-                            <p className="mt-3 text-sm leading-7 text-[#595651] dark:text-[#c8c8ce]">
-                                This page still uses the same connected backend endpoints from the previous batch, with a more complete admin experience layered on top.
-                            </p>
-                        </div>
-
-                        <div className="rounded-[1.4rem] bg-[#f7f2e8] p-4 transition hover:-translate-y-0.5 dark:bg-[#1d1e23]">
-                            <p className="flex items-center gap-2 text-sm font-bold">
-                                <LayoutGrid className="h-4 w-4 text-[#174f40] dark:text-[#9dc0ff]" />
-                                Next optional step
-                            </p>
-                            <p className="mt-3 text-sm leading-7 text-[#595651] dark:text-[#c8c8ce]">
-                                The next optional pass would be adding drag-and-drop sort ordering and a dedicated calendar-rule update endpoint.
-                            </p>
-                        </div>
-                    </div>
-                </section>
+  const [notice, setNotice] = useState<NoticeState>(null);
+
+  const [bcccEvents, setBcccEvents] = useState<EventRow[]>(initialBcccEvents);
+  const [cityEvents, setCityEvents] = useState<EventRow[]>(initialCityEvents);
+  const [packages, setPackages] = useState<PackageRow[]>(initialPackages);
+  const [calendarBlocks, setCalendarBlocks] =
+    useState<CalendarBlockRow[]>(initialCalendarBlocks);
+  const [spaces, setSpaces] = useState<SpaceRow[]>(initialSpaces);
+  const [stats, setStats] = useState<StatRow[]>(initialStats);
+  const [siteConfig, setSiteConfig] =
+    useState<SiteConfigState>(initialSiteConfig);
+
+  const [eventForm, setEventForm] = useState<EventFormState>(emptyEventForm);
+  const [editingEventId, setEditingEventId] = useState<RowId | null>(null);
+  const [editingEventOriginalScope, setEditingEventOriginalScope] = useState<
+    'bccc' | 'city' | null
+  >(null);
+
+  const [packageForm, setPackageForm] = useState<PackageFormState>(emptyPackageForm);
+  const [editingPackageId, setEditingPackageId] = useState<RowId | null>(null);
+
+  const [calendarBlockForm, setCalendarBlockForm] =
+    useState<CalendarBlockFormState>(emptyCalendarBlockForm);
+  const [editingCalendarBlockId, setEditingCalendarBlockId] =
+    useState<RowId | null>(null);
+
+  const [spaceForm, setSpaceForm] = useState<SpaceFormState>(emptySpaceForm);
+  const [editingSpaceId, setEditingSpaceId] = useState<RowId | null>(null);
+
+  const [statForm, setStatForm] = useState<StatFormState>(emptyStatForm);
+  const [editingStatId, setEditingStatId] = useState<RowId | null>(null);
+
+  const summary = useMemo(
+    () => ({
+      events: bcccEvents.length + cityEvents.length,
+      packages: packages.length,
+      calendarBlocks: calendarBlocks.length,
+      spaces: spaces.length,
+      stats: stats.length,
+    }),
+    [bcccEvents.length, cityEvents.length, packages.length, calendarBlocks.length, spaces.length, stats.length],
+  );
+
+  const resetEventForm = () => {
+    setEventForm(emptyEventForm);
+    setEditingEventId(null);
+    setEditingEventOriginalScope(null);
+  };
+
+  const resetPackageForm = () => {
+    setPackageForm(emptyPackageForm);
+    setEditingPackageId(null);
+  };
+
+  const resetCalendarBlockForm = () => {
+    setCalendarBlockForm(emptyCalendarBlockForm);
+    setEditingCalendarBlockId(null);
+  };
+
+  const resetSpaceForm = () => {
+    setSpaceForm(emptySpaceForm);
+    setEditingSpaceId(null);
+  };
+
+  const resetStatForm = () => {
+    setStatForm(emptyStatForm);
+    setEditingStatId(null);
+  };
+
+  const setSuccess = (text: string) => setNotice({ type: 'success', text });
+  const setError = (text: string) => setNotice({ type: 'error', text });
+
+  const handleEventFiles = (e: ChangeEvent<HTMLInputElement>) => {
+    setEventForm((prev) => ({
+      ...prev,
+      files: fileListToFiles(e.target.files),
+    }));
+  };
+
+  const handlePackageFiles = (e: ChangeEvent<HTMLInputElement>) => {
+    setPackageForm((prev) => ({
+      ...prev,
+      files: fileListToFiles(e.target.files),
+    }));
+  };
+
+  const handleSpaceLightFile = (e: ChangeEvent<HTMLInputElement>) => {
+    setSpaceForm((prev) => ({
+      ...prev,
+      lightFile: e.target.files?.[0] ?? null,
+    }));
+  };
+
+  const handleSpaceDarkFile = (e: ChangeEvent<HTMLInputElement>) => {
+    setSpaceForm((prev) => ({
+      ...prev,
+      darkFile: e.target.files?.[0] ?? null,
+    }));
+  };
+
+  const submitEvent = async (e: FormEvent) => {
+    e.preventDefault();
+    setNotice(null);
+
+    try {
+      const formData = new FormData();
+      formData.append('scope', eventForm.scope);
+      formData.append('title', eventForm.title);
+      formData.append('venue', eventForm.venue);
+      formData.append('event_date', eventForm.date);
+      formData.append('event_time', eventForm.time);
+      formData.append('description', eventForm.description);
+      formData.append('note', eventForm.note);
+      formData.append('is_highlighted', eventForm.highlighted ? '1' : '0');
+      formData.append('is_public', eventForm.isPublic ? '1' : '0');
+      eventForm.files.forEach((file) => formData.append('images[]', file));
+
+      const payload = await apiFormSubmit<{
+        message: string;
+        item: EventRow;
+      }>(
+        editingEventId ? `/admin/events/${editingEventId}` : '/admin/events',
+        formData,
+        editingEventId ? 'PUT' : 'POST',
+      );
+
+      const nextBccc = removeById(bcccEvents, payload.item.id);
+      const nextCity = removeById(cityEvents, payload.item.id);
+
+      if (payload.item.scope === 'city') {
+        setBcccEvents(nextBccc);
+        setCityEvents(upsertById(nextCity, payload.item));
+      } else {
+        setBcccEvents(upsertById(nextBccc, payload.item));
+        setCityEvents(nextCity);
+      }
+
+      resetEventForm();
+      setSuccess(payload.message);
+    } catch (error) {
+      setError(normalizeErrorMessage(error));
+    }
+  };
+
+  const editEvent = (row: EventRow) => {
+    setEditingEventId(row.id);
+    setEditingEventOriginalScope(row.scope ?? 'bccc');
+    setEventForm({
+      scope: row.scope ?? 'bccc',
+      title: row.title,
+      venue: row.venue,
+      date: row.date,
+      time: row.time ?? '',
+      description: row.description,
+      note: row.note,
+      highlighted: row.highlighted,
+      isPublic: row.isPublic ?? true,
+      files: [],
+    });
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const deleteEvent = async (id: RowId) => {
+    setNotice(null);
+
+    try {
+      const payload = await apiJson<{ message: string; id: RowId }>(
+        `/admin/events/${id}`,
+        'DELETE',
+      );
+
+      setBcccEvents((prev) => removeById(prev, payload.id));
+      setCityEvents((prev) => removeById(prev, payload.id));
+      if (editingEventId === payload.id) {
+        resetEventForm();
+      }
+      setSuccess(payload.message);
+    } catch (error) {
+      setError(normalizeErrorMessage(error));
+    }
+  };
+
+  const moveEvent = (scope: 'bccc' | 'city', index: number, direction: -1 | 1) => {
+    if (scope === 'bccc') {
+      setBcccEvents((prev) => moveItem(prev, index, direction));
+      return;
+    }
+
+    setCityEvents((prev) => moveItem(prev, index, direction));
+  };
+
+  const saveEventSort = async (scope: 'bccc' | 'city') => {
+    setNotice(null);
+
+    try {
+      const rows = scope === 'bccc' ? bcccEvents : cityEvents;
+
+      await apiJson('/admin/sort/events', 'POST', {
+        scope,
+        ordered_ids: rows.map((row) => row.id),
+      });
+
+      setSuccess(`${scope === 'bccc' ? 'BCCC' : 'City'} event order saved.`);
+    } catch (error) {
+      setError(normalizeErrorMessage(error));
+    }
+  };
+
+  const submitPackage = async (e: FormEvent) => {
+    e.preventDefault();
+    setNotice(null);
+
+    try {
+      const formData = new FormData();
+      formData.append('title', packageForm.title);
+      formData.append('description', packageForm.description);
+      packageForm.files.forEach((file) => formData.append('images[]', file));
+
+      const payload = await apiFormSubmit<{
+        message: string;
+        item: PackageRow;
+      }>(
+        editingPackageId ? `/admin/packages/${editingPackageId}` : '/admin/packages',
+        formData,
+        editingPackageId ? 'PUT' : 'POST',
+      );
+
+      setPackages((prev) => upsertById(prev, payload.item));
+      resetPackageForm();
+      setSuccess(payload.message);
+    } catch (error) {
+      setError(normalizeErrorMessage(error));
+    }
+  };
+
+  const editPackage = (row: PackageRow) => {
+    setEditingPackageId(row.id);
+    setPackageForm({
+      title: row.title,
+      description: row.description,
+      files: [],
+    });
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const deletePackage = async (id: RowId) => {
+    setNotice(null);
+
+    try {
+      const payload = await apiJson<{ message: string; id: RowId }>(
+        `/admin/packages/${id}`,
+        'DELETE',
+      );
+
+      setPackages((prev) => removeById(prev, payload.id));
+
+      if (editingPackageId === payload.id) {
+        resetPackageForm();
+      }
+
+      setSuccess(payload.message);
+    } catch (error) {
+      setError(normalizeErrorMessage(error));
+    }
+  };
+
+  const movePackage = (index: number, direction: -1 | 1) => {
+    setPackages((prev) => moveItem(prev, index, direction));
+  };
+
+  const savePackageSort = async () => {
+    setNotice(null);
+
+    try {
+      await apiJson('/admin/sort/packages', 'POST', {
+        ordered_ids: packages.map((row) => row.id),
+      });
+
+      setSuccess('Package order saved.');
+    } catch (error) {
+      setError(normalizeErrorMessage(error));
+    }
+  };
+
+  const submitCalendarBlock = async (e: FormEvent) => {
+    e.preventDefault();
+    setNotice(null);
+
+    try {
+      const payload = await apiJson<{
+        message: string;
+        item: CalendarBlockRow;
+      }>(
+        editingCalendarBlockId
+          ? `/calendar-blocks/${editingCalendarBlockId}`
+          : '/calendar-blocks',
+        editingCalendarBlockId ? 'PUT' : 'POST',
+        {
+          title: calendarBlockForm.title,
+          area: calendarBlockForm.area,
+          notes: calendarBlockForm.note,
+          block: calendarBlockForm.block,
+          public_status: calendarBlockForm.statusColor,
+          date_from: calendarBlockForm.dateFrom,
+          date_to: calendarBlockForm.dateTo,
+        },
+      );
+
+      setCalendarBlocks((prev) => upsertById(prev, payload.item));
+      resetCalendarBlockForm();
+      setSuccess(payload.message);
+    } catch (error) {
+      setError(normalizeErrorMessage(error));
+    }
+  };
+
+  const editCalendarBlock = (row: CalendarBlockRow) => {
+    setEditingCalendarBlockId(row.id);
+    setCalendarBlockForm({
+      title: row.title,
+      area: row.area,
+      block: row.block,
+      dateFrom: row.dateFrom,
+      dateTo: row.dateTo,
+      note: row.note,
+      statusColor: row.statusColor,
+    });
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const deleteCalendarBlock = async (id: RowId) => {
+    setNotice(null);
+
+    try {
+      const payload = await apiJson<{ message: string; id: RowId }>(
+        `/calendar-blocks/${id}`,
+        'DELETE',
+      );
+
+      setCalendarBlocks((prev) => removeById(prev, payload.id));
+
+      if (editingCalendarBlockId === payload.id) {
+        resetCalendarBlockForm();
+      }
+
+      setSuccess(payload.message);
+    } catch (error) {
+      setError(normalizeErrorMessage(error));
+    }
+  };
+
+  const submitSpace = async (e: FormEvent) => {
+    e.preventDefault();
+    setNotice(null);
+
+    try {
+      const formData = new FormData();
+      formData.append('title', spaceForm.title);
+      formData.append('category', spaceForm.category);
+      formData.append('capacity', spaceForm.capacity);
+      formData.append('short_description', spaceForm.shortDescription);
+      formData.append('summary', spaceForm.summary);
+      formData.append('details_text', spaceForm.detailsText);
+      formData.append('homepage_visible', spaceForm.homepageVisible ? '1' : '0');
+
+      if (spaceForm.lightFile) {
+        formData.append('light_image', spaceForm.lightFile);
+      }
+
+      if (spaceForm.darkFile) {
+        formData.append('dark_image', spaceForm.darkFile);
+      }
+
+      const payload = await apiFormSubmit<{
+        message: string;
+        item: SpaceRow;
+      }>(
+        editingSpaceId ? `/admin/spaces/${editingSpaceId}` : '/admin/spaces',
+        formData,
+        editingSpaceId ? 'PUT' : 'POST',
+      );
+
+      setSpaces((prev) => upsertById(prev, payload.item));
+      resetSpaceForm();
+      setSuccess(payload.message);
+    } catch (error) {
+      setError(normalizeErrorMessage(error));
+    }
+  };
+
+  const editSpace = (row: SpaceRow) => {
+    setEditingSpaceId(row.id);
+    setSpaceForm({
+      title: row.title,
+      category: row.category,
+      capacity: row.capacity,
+      shortDescription: row.shortDescription,
+      summary: row.summary,
+      detailsText: row.details.join('\n'),
+      homepageVisible: row.homepageVisible,
+      lightFile: null,
+      darkFile: null,
+    });
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const deleteSpace = async (id: RowId) => {
+    setNotice(null);
+
+    try {
+      const payload = await apiJson<{ message: string; id: RowId }>(
+        `/admin/spaces/${id}`,
+        'DELETE',
+      );
+
+      setSpaces((prev) => removeById(prev, payload.id));
+
+      if (editingSpaceId === payload.id) {
+        resetSpaceForm();
+      }
+
+      setSuccess(payload.message);
+    } catch (error) {
+      setError(normalizeErrorMessage(error));
+    }
+  };
+
+  const moveSpace = (index: number, direction: -1 | 1) => {
+    setSpaces((prev) => moveItem(prev, index, direction));
+  };
+
+  const saveSpaceSort = async () => {
+    setNotice(null);
+
+    try {
+      await apiJson('/admin/sort/spaces', 'POST', {
+        ordered_ids: spaces.map((row) => row.id),
+      });
+
+      setSuccess('Venue space order saved.');
+    } catch (error) {
+      setError(normalizeErrorMessage(error));
+    }
+  };
+
+  const submitStat = async (e: FormEvent) => {
+    e.preventDefault();
+    setNotice(null);
+
+    try {
+      const payload = await apiJson<{
+        message: string;
+        item: StatRow;
+      }>(
+        editingStatId ? `/admin/stats/${editingStatId}` : '/admin/stats',
+        editingStatId ? 'PUT' : 'POST',
+        statForm,
+      );
+
+      setStats((prev) => upsertById(prev, payload.item));
+      resetStatForm();
+      setSuccess(payload.message);
+    } catch (error) {
+      setError(normalizeErrorMessage(error));
+    }
+  };
+
+  const editStat = (row: StatRow) => {
+    setEditingStatId(row.id);
+    setStatForm({
+      label: row.label,
+      value: row.value,
+      suffix: row.suffix,
+    });
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const deleteStat = async (id: RowId) => {
+    setNotice(null);
+
+    try {
+      const payload = await apiJson<{ message: string; id: RowId }>(
+        `/admin/stats/${id}`,
+        'DELETE',
+      );
+
+      setStats((prev) => removeById(prev, payload.id));
+
+      if (editingStatId === payload.id) {
+        resetStatForm();
+      }
+
+      setSuccess(payload.message);
+    } catch (error) {
+      setError(normalizeErrorMessage(error));
+    }
+  };
+
+  const moveStat = (index: number, direction: -1 | 1) => {
+    setStats((prev) => moveItem(prev, index, direction));
+  };
+
+  const saveStatSort = async () => {
+    setNotice(null);
+
+    try {
+      await apiJson('/admin/sort/stats', 'POST', {
+        ordered_ids: stats.map((row) => row.id),
+      });
+
+      setSuccess('Homepage stat order saved.');
+    } catch (error) {
+      setError(normalizeErrorMessage(error));
+    }
+  };
+
+  const submitSiteConfig = async (e: FormEvent) => {
+    e.preventDefault();
+    setNotice(null);
+
+    try {
+      const payload = await apiJson<{
+        message: string;
+        item: SiteConfigState;
+      }>('/admin/site-settings', 'PUT', {
+        map_embed_url: siteConfig.mapEmbedUrl,
+        open_map_url: siteConfig.openMapUrl,
+        address: siteConfig.address,
+        phone: siteConfig.phone,
+        email: siteConfig.email,
+        footer_description: siteConfig.footerDescription,
+        footer_copyright: siteConfig.footerCopyright,
+      });
+
+      setSiteConfig(payload.item);
+      setSuccess(payload.message);
+    } catch (error) {
+      setError(normalizeErrorMessage(error));
+    }
+  };
+
+  return (
+    <AdminLayout>
+      <Head title="Admin Home" />
+
+      <div className="space-y-8">
+        <section className="rounded-[2rem] border border-black/5 bg-white p-6 shadow-sm dark:border-white/10 dark:bg-[#121318] sm:p-8">
+          <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
+            <div>
+              <div className="text-xs font-semibold uppercase tracking-[0.34em] text-[#174f40] dark:text-[#8ea3ff]">
+                Config Home
+              </div>
+              <h1 className="mt-2 text-4xl font-semibold tracking-tight">
+                Frontend content and schedule management
+              </h1>
+              <p className="mt-3 max-w-3xl text-sm leading-7 text-slate-500 dark:text-slate-300">
+                Manage public events, packages, venue spaces, homepage stats,
+                calendar blocks, and footer/contact information from one admin console.
+              </p>
             </div>
-        </AdminLayout>
-    );
+          </div>
+
+          <div className="mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
+            {[
+              { label: 'Events', value: summary.events.toString(), icon: Megaphone },
+              { label: 'Packages', value: summary.packages.toString(), icon: Package2 },
+              { label: 'Calendar Blocks', value: summary.calendarBlocks.toString(), icon: CalendarDays },
+              { label: 'Venue Spaces', value: summary.spaces.toString(), icon: LayoutGrid },
+              { label: 'Homepage Stats', value: summary.stats.toString(), icon: ShieldCheck },
+            ].map((item) => {
+              const Icon = item.icon;
+
+              return (
+                <div
+                  key={item.label}
+                  className="rounded-3xl border border-black/5 bg-[#f7f5ef] p-5 dark:border-white/10 dark:bg-white/5"
+                >
+                  <div className="inline-flex h-10 w-10 items-center justify-center rounded-2xl bg-[#e8f2ee] text-[#174f40] dark:bg-[#18231f] dark:text-[#8ea3ff]">
+                    <Icon className="h-4 w-4" />
+                  </div>
+                  <div className="mt-4 text-3xl font-semibold">{item.value}</div>
+                  <div className="mt-1 text-sm text-slate-500 dark:text-slate-300">
+                    {item.label}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </section>
+
+        <NoticeBanner notice={notice} />
+
+        <SectionCard
+          title="Site Settings"
+          subtitle="Footer, map, address, phone, and email used by the public pages."
+          icon={MapPin}
+        >
+          <form onSubmit={submitSiteConfig} className="grid gap-4 lg:grid-cols-2">
+            <input
+              value={siteConfig.mapEmbedUrl}
+              onChange={(e) =>
+                setSiteConfig((prev) => ({ ...prev, mapEmbedUrl: e.target.value }))
+              }
+              placeholder="Map embed URL"
+              className="h-12 rounded-2xl border border-black/10 bg-white px-4 text-sm outline-none dark:border-white/10 dark:bg-white/5"
+            />
+            <input
+              value={siteConfig.openMapUrl}
+              onChange={(e) =>
+                setSiteConfig((prev) => ({ ...prev, openMapUrl: e.target.value }))
+              }
+              placeholder="Open map URL"
+              className="h-12 rounded-2xl border border-black/10 bg-white px-4 text-sm outline-none dark:border-white/10 dark:bg-white/5"
+            />
+            <input
+              value={siteConfig.address}
+              onChange={(e) =>
+                setSiteConfig((prev) => ({ ...prev, address: e.target.value }))
+              }
+              placeholder="Address"
+              className="h-12 rounded-2xl border border-black/10 bg-white px-4 text-sm outline-none dark:border-white/10 dark:bg-white/5"
+            />
+            <input
+              value={siteConfig.phone}
+              onChange={(e) =>
+                setSiteConfig((prev) => ({ ...prev, phone: e.target.value }))
+              }
+              placeholder="Phone"
+              className="h-12 rounded-2xl border border-black/10 bg-white px-4 text-sm outline-none dark:border-white/10 dark:bg-white/5"
+            />
+            <input
+              value={siteConfig.email}
+              onChange={(e) =>
+                setSiteConfig((prev) => ({ ...prev, email: e.target.value }))
+              }
+              placeholder="Email"
+              className="h-12 rounded-2xl border border-black/10 bg-white px-4 text-sm outline-none dark:border-white/10 dark:bg-white/5"
+            />
+            <input
+              value={siteConfig.footerCopyright}
+              onChange={(e) =>
+                setSiteConfig((prev) => ({
+                  ...prev,
+                  footerCopyright: e.target.value,
+                }))
+              }
+              placeholder="Footer copyright"
+              className="h-12 rounded-2xl border border-black/10 bg-white px-4 text-sm outline-none dark:border-white/10 dark:bg-white/5"
+            />
+            <textarea
+              value={siteConfig.footerDescription}
+              onChange={(e) =>
+                setSiteConfig((prev) => ({
+                  ...prev,
+                  footerDescription: e.target.value,
+                }))
+              }
+              placeholder="Footer description"
+              rows={4}
+              className="lg:col-span-2 rounded-2xl border border-black/10 bg-white px-4 py-3 text-sm outline-none dark:border-white/10 dark:bg-white/5"
+            />
+
+            <div className="lg:col-span-2">
+              <button
+                type="submit"
+                className="inline-flex items-center gap-2 rounded-full bg-[#174f40] px-5 py-3 text-sm font-semibold text-white transition hover:opacity-90 dark:bg-[#2d47ff]"
+              >
+                <Save className="h-4 w-4" />
+                Save Site Settings
+              </button>
+            </div>
+          </form>
+        </SectionCard>
+
+        <SectionCard
+          title="Public Events"
+          subtitle="Manage BCCC events and Baguio City public events from one form."
+          icon={Megaphone}
+        >
+          <form onSubmit={submitEvent} className="grid gap-4 rounded-3xl border border-black/5 bg-[#f7f5ef] p-5 dark:border-white/10 dark:bg-white/5 lg:grid-cols-2">
+            <select
+              value={eventForm.scope}
+              onChange={(e) =>
+                setEventForm((prev) => ({
+                  ...prev,
+                  scope: e.target.value as 'bccc' | 'city',
+                }))
+              }
+              className="h-12 rounded-2xl border border-black/10 bg-white px-4 text-sm outline-none dark:border-white/10 dark:bg-[#121318]"
+            >
+              <option value="bccc">BCCC Events</option>
+              <option value="city">Baguio City Events</option>
+            </select>
+
+            <input
+              value={eventForm.title}
+              onChange={(e) =>
+                setEventForm((prev) => ({ ...prev, title: e.target.value }))
+              }
+              placeholder="Event title"
+              className="h-12 rounded-2xl border border-black/10 bg-white px-4 text-sm outline-none dark:border-white/10 dark:bg-[#121318]"
+              required
+            />
+
+            <input
+              value={eventForm.venue}
+              onChange={(e) =>
+                setEventForm((prev) => ({ ...prev, venue: e.target.value }))
+              }
+              placeholder="Venue"
+              className="h-12 rounded-2xl border border-black/10 bg-white px-4 text-sm outline-none dark:border-white/10 dark:bg-[#121318]"
+              required
+            />
+
+            <input
+              type="date"
+              value={eventForm.date}
+              onChange={(e) =>
+                setEventForm((prev) => ({ ...prev, date: e.target.value }))
+              }
+              className="h-12 rounded-2xl border border-black/10 bg-white px-4 text-sm outline-none dark:border-white/10 dark:bg-[#121318]"
+              required
+            />
+
+            <input
+              value={eventForm.time}
+              onChange={(e) =>
+                setEventForm((prev) => ({ ...prev, time: e.target.value }))
+              }
+              placeholder="Event time"
+              className="h-12 rounded-2xl border border-black/10 bg-white px-4 text-sm outline-none dark:border-white/10 dark:bg-[#121318]"
+            />
+
+            <div className="flex items-center gap-6 rounded-2xl border border-black/10 bg-white px-4 py-3 text-sm dark:border-white/10 dark:bg-[#121318]">
+              <label className="inline-flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  checked={eventForm.highlighted}
+                  onChange={(e) =>
+                    setEventForm((prev) => ({
+                      ...prev,
+                      highlighted: e.target.checked,
+                    }))
+                  }
+                />
+                Highlighted
+              </label>
+
+              <label className="inline-flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  checked={eventForm.isPublic}
+                  onChange={(e) =>
+                    setEventForm((prev) => ({
+                      ...prev,
+                      isPublic: e.target.checked,
+                    }))
+                  }
+                />
+                Public
+              </label>
+            </div>
+
+            <textarea
+              value={eventForm.description}
+              onChange={(e) =>
+                setEventForm((prev) => ({ ...prev, description: e.target.value }))
+              }
+              placeholder="Description"
+              rows={4}
+              className="lg:col-span-2 rounded-2xl border border-black/10 bg-white px-4 py-3 text-sm outline-none dark:border-white/10 dark:bg-[#121318]"
+              required
+            />
+
+            <textarea
+              value={eventForm.note}
+              onChange={(e) =>
+                setEventForm((prev) => ({ ...prev, note: e.target.value }))
+              }
+              placeholder="Note"
+              rows={3}
+              className="lg:col-span-2 rounded-2xl border border-black/10 bg-white px-4 py-3 text-sm outline-none dark:border-white/10 dark:bg-[#121318]"
+            />
+
+            <div className="lg:col-span-2">
+              <label className="mb-2 block text-sm font-semibold">Images (max 3)</label>
+              <input
+                type="file"
+                accept="image/*"
+                multiple
+                onChange={handleEventFiles}
+                className="block w-full text-sm"
+              />
+              {eventForm.files.length > 0 && (
+                <div className="mt-2 text-sm text-slate-500 dark:text-slate-300">
+                  {eventForm.files.map((file) => file.name).join(', ')}
+                </div>
+              )}
+            </div>
+
+            <div className="lg:col-span-2 flex flex-wrap gap-3">
+              <button
+                type="submit"
+                className="inline-flex items-center gap-2 rounded-full bg-[#174f40] px-5 py-3 text-sm font-semibold text-white transition hover:opacity-90 dark:bg-[#2d47ff]"
+              >
+                {editingEventId ? <Save className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
+                {editingEventId ? 'Update Event' : 'Create Event'}
+              </button>
+
+              {editingEventId && (
+                <button
+                  type="button"
+                  onClick={resetEventForm}
+                  className="inline-flex items-center gap-2 rounded-full border border-black/10 bg-white px-5 py-3 text-sm font-semibold dark:border-white/10 dark:bg-[#17181c]"
+                >
+                  <X className="h-4 w-4" />
+                  Cancel Edit
+                </button>
+              )}
+            </div>
+          </form>
+
+          <div className="mt-8 grid gap-6 xl:grid-cols-2">
+            {[
+              {
+                title: 'BCCC Events',
+                scope: 'bccc' as const,
+                rows: bcccEvents,
+              },
+              {
+                title: 'Baguio City Events',
+                scope: 'city' as const,
+                rows: cityEvents,
+              },
+            ].map((group) => (
+              <div key={group.scope} className="space-y-4 rounded-3xl border border-black/5 p-5 dark:border-white/10">
+                <div className="flex items-center justify-between gap-3">
+                  <h3 className="text-xl font-semibold">{group.title}</h3>
+                  <button
+                    type="button"
+                    onClick={() => saveEventSort(group.scope)}
+                    className="rounded-full border border-black/10 bg-white px-4 py-2 text-sm font-semibold dark:border-white/10 dark:bg-[#17181c]"
+                  >
+                    Save Order
+                  </button>
+                </div>
+
+                <div className="space-y-4">
+                  {group.rows.map((row, index) => (
+                    <div
+                      key={row.id}
+                      className="rounded-3xl border border-black/5 bg-[#f7f5ef] p-4 dark:border-white/10 dark:bg-white/5"
+                    >
+                      <div className="flex flex-col gap-4">
+                        <div className="flex items-start justify-between gap-4">
+                          <div>
+                            <div className="text-xs font-semibold uppercase tracking-[0.25em] text-slate-500 dark:text-slate-300">
+                              {row.date}
+                            </div>
+                            <h4 className="mt-1 text-lg font-semibold">{row.title}</h4>
+                            <div className="mt-1 text-sm text-slate-500 dark:text-slate-300">
+                              {row.venue}
+                              {row.time ? ` • ${row.time}` : ''}
+                            </div>
+                            <div className="mt-2 flex flex-wrap gap-2 text-xs">
+                              <span className="rounded-full bg-slate-100 px-3 py-1 dark:bg-white/10">
+                                {row.highlighted ? 'Highlighted' : 'Standard'}
+                              </span>
+                              <span className="rounded-full bg-slate-100 px-3 py-1 dark:bg-white/10">
+                                {row.isPublic ? 'Public' : 'Hidden'}
+                              </span>
+                            </div>
+                          </div>
+
+                          <div className="flex flex-wrap gap-2">
+                            <button
+                              type="button"
+                              onClick={() => moveEvent(group.scope, index, -1)}
+                              className="rounded-full border border-black/10 bg-white p-2 dark:border-white/10 dark:bg-[#17181c]"
+                            >
+                              <ChevronUp className="h-4 w-4" />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => moveEvent(group.scope, index, 1)}
+                              className="rounded-full border border-black/10 bg-white p-2 dark:border-white/10 dark:bg-[#17181c]"
+                            >
+                              <ChevronDown className="h-4 w-4" />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => editEvent(row)}
+                              className="rounded-full border border-black/10 bg-white p-2 dark:border-white/10 dark:bg-[#17181c]"
+                            >
+                              <Edit3 className="h-4 w-4" />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => deleteEvent(row.id)}
+                              className="rounded-full border border-red-200 bg-white p-2 text-red-600 dark:border-red-400/20 dark:bg-[#17181c]"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </button>
+                          </div>
+                        </div>
+
+                        <p className="text-sm leading-7 text-slate-600 dark:text-slate-300">
+                          {row.description}
+                        </p>
+
+                        <ImageStrip images={row.images} emptyLabel="No event images uploaded." />
+                      </div>
+                    </div>
+                  ))}
+
+                  {group.rows.length === 0 && (
+                    <div className="rounded-2xl border border-dashed border-black/10 px-4 py-6 text-sm text-slate-500 dark:border-white/10 dark:text-slate-300">
+                      No events added yet.
+                    </div>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        </SectionCard>
+
+        <SectionCard
+          title="Calendar Blocks"
+          subtitle="Manage public status colors and blocked/private/public schedule windows."
+          icon={CalendarDays}
+        >
+          <form
+            onSubmit={submitCalendarBlock}
+            className="grid gap-4 rounded-3xl border border-black/5 bg-[#f7f5ef] p-5 dark:border-white/10 dark:bg-white/5 lg:grid-cols-2"
+          >
+            <input
+              value={calendarBlockForm.title}
+              onChange={(e) =>
+                setCalendarBlockForm((prev) => ({ ...prev, title: e.target.value }))
+              }
+              placeholder="Block title"
+              className="h-12 rounded-2xl border border-black/10 bg-white px-4 text-sm outline-none dark:border-white/10 dark:bg-[#121318]"
+              required
+            />
+
+            <input
+              value={calendarBlockForm.area}
+              onChange={(e) =>
+                setCalendarBlockForm((prev) => ({ ...prev, area: e.target.value }))
+              }
+              placeholder="Area"
+              className="h-12 rounded-2xl border border-black/10 bg-white px-4 text-sm outline-none dark:border-white/10 dark:bg-[#121318]"
+            />
+
+            <select
+              value={calendarBlockForm.block}
+              onChange={(e) =>
+                setCalendarBlockForm((prev) => ({
+                  ...prev,
+                  block: e.target.value as CalendarBlockFormState['block'],
+                }))
+              }
+              className="h-12 rounded-2xl border border-black/10 bg-white px-4 text-sm outline-none dark:border-white/10 dark:bg-[#121318]"
+            >
+              <option value="DAY">DAY</option>
+              <option value="AM">AM</option>
+              <option value="PM">PM</option>
+              <option value="EVE">EVE</option>
+            </select>
+
+            <select
+              value={calendarBlockForm.statusColor}
+              onChange={(e) =>
+                setCalendarBlockForm((prev) => ({
+                  ...prev,
+                  statusColor: e.target.value as CalendarBlockFormState['statusColor'],
+                }))
+              }
+              className="h-12 rounded-2xl border border-black/10 bg-white px-4 text-sm outline-none dark:border-white/10 dark:bg-[#121318]"
+            >
+              <option value="red">Red - Blocked</option>
+              <option value="gold">Gold - Private Booking</option>
+              <option value="blue">Blue - Public Event</option>
+            </select>
+
+            <input
+              type="date"
+              value={calendarBlockForm.dateFrom}
+              onChange={(e) =>
+                setCalendarBlockForm((prev) => ({ ...prev, dateFrom: e.target.value }))
+              }
+              className="h-12 rounded-2xl border border-black/10 bg-white px-4 text-sm outline-none dark:border-white/10 dark:bg-[#121318]"
+              required
+            />
+
+            <input
+              type="date"
+              value={calendarBlockForm.dateTo}
+              onChange={(e) =>
+                setCalendarBlockForm((prev) => ({ ...prev, dateTo: e.target.value }))
+              }
+              className="h-12 rounded-2xl border border-black/10 bg-white px-4 text-sm outline-none dark:border-white/10 dark:bg-[#121318]"
+              required
+            />
+
+            <textarea
+              value={calendarBlockForm.note}
+              onChange={(e) =>
+                setCalendarBlockForm((prev) => ({ ...prev, note: e.target.value }))
+              }
+              placeholder="Notes"
+              rows={3}
+              className="lg:col-span-2 rounded-2xl border border-black/10 bg-white px-4 py-3 text-sm outline-none dark:border-white/10 dark:bg-[#121318]"
+            />
+
+            <div className="lg:col-span-2 flex flex-wrap gap-3">
+              <button
+                type="submit"
+                className="inline-flex items-center gap-2 rounded-full bg-[#174f40] px-5 py-3 text-sm font-semibold text-white transition hover:opacity-90 dark:bg-[#2d47ff]"
+              >
+                {editingCalendarBlockId ? (
+                  <Save className="h-4 w-4" />
+                ) : (
+                  <Plus className="h-4 w-4" />
+                )}
+                {editingCalendarBlockId ? 'Update Block' : 'Create Block'}
+              </button>
+
+              {editingCalendarBlockId && (
+                <button
+                  type="button"
+                  onClick={resetCalendarBlockForm}
+                  className="inline-flex items-center gap-2 rounded-full border border-black/10 bg-white px-5 py-3 text-sm font-semibold dark:border-white/10 dark:bg-[#17181c]"
+                >
+                  <X className="h-4 w-4" />
+                  Cancel Edit
+                </button>
+              )}
+            </div>
+          </form>
+
+          <div className="mt-6 grid gap-4">
+            {calendarBlocks.map((row) => (
+              <div
+                key={row.id}
+                className="rounded-3xl border border-black/5 bg-[#f7f5ef] p-4 dark:border-white/10 dark:bg-white/5"
+              >
+                <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+                  <div>
+                    <div className="flex flex-wrap gap-2 text-xs">
+                      <span className="rounded-full bg-slate-100 px-3 py-1 dark:bg-white/10">
+                        {row.block}
+                      </span>
+                      <span className="rounded-full bg-slate-100 px-3 py-1 dark:bg-white/10">
+                        {row.statusColor}
+                      </span>
+                    </div>
+                    <h3 className="mt-2 text-lg font-semibold">{row.title}</h3>
+                    <div className="mt-1 text-sm text-slate-500 dark:text-slate-300">
+                      {row.area || 'No area specified'} • {row.dateFrom} to {row.dateTo}
+                    </div>
+                    {row.note && (
+                      <p className="mt-2 text-sm leading-7 text-slate-600 dark:text-slate-300">
+                        {row.note}
+                      </p>
+                    )}
+                  </div>
+
+                  <div className="flex flex-wrap gap-2">
+                    <button
+                      type="button"
+                      onClick={() => editCalendarBlock(row)}
+                      className="rounded-full border border-black/10 bg-white p-2 dark:border-white/10 dark:bg-[#17181c]"
+                    >
+                      <Edit3 className="h-4 w-4" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => deleteCalendarBlock(row.id)}
+                      className="rounded-full border border-red-200 bg-white p-2 text-red-600 dark:border-red-400/20 dark:bg-[#17181c]"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ))}
+
+            {calendarBlocks.length === 0 && (
+              <div className="rounded-2xl border border-dashed border-black/10 px-4 py-6 text-sm text-slate-500 dark:border-white/10 dark:text-slate-300">
+                No calendar blocks added yet.
+              </div>
+            )}
+          </div>
+        </SectionCard>
+
+        <SectionCard
+          title="Feature Packages"
+          subtitle="Manage package cards shown on the public side."
+          icon={Package2}
+        >
+          <form
+            onSubmit={submitPackage}
+            className="grid gap-4 rounded-3xl border border-black/5 bg-[#f7f5ef] p-5 dark:border-white/10 dark:bg-white/5"
+          >
+            <input
+              value={packageForm.title}
+              onChange={(e) =>
+                setPackageForm((prev) => ({ ...prev, title: e.target.value }))
+              }
+              placeholder="Package title"
+              className="h-12 rounded-2xl border border-black/10 bg-white px-4 text-sm outline-none dark:border-white/10 dark:bg-[#121318]"
+              required
+            />
+
+            <textarea
+              value={packageForm.description}
+              onChange={(e) =>
+                setPackageForm((prev) => ({
+                  ...prev,
+                  description: e.target.value,
+                }))
+              }
+              placeholder="Package description"
+              rows={4}
+              className="rounded-2xl border border-black/10 bg-white px-4 py-3 text-sm outline-none dark:border-white/10 dark:bg-[#121318]"
+              required
+            />
+
+            <div>
+              <label className="mb-2 block text-sm font-semibold">Images (max 3)</label>
+              <input
+                type="file"
+                accept="image/*"
+                multiple
+                onChange={handlePackageFiles}
+                className="block w-full text-sm"
+              />
+            </div>
+
+            <div className="flex flex-wrap gap-3">
+              <button
+                type="submit"
+                className="inline-flex items-center gap-2 rounded-full bg-[#174f40] px-5 py-3 text-sm font-semibold text-white transition hover:opacity-90 dark:bg-[#2d47ff]"
+              >
+                {editingPackageId ? <Save className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
+                {editingPackageId ? 'Update Package' : 'Create Package'}
+              </button>
+
+              <button
+                type="button"
+                onClick={savePackageSort}
+                className="rounded-full border border-black/10 bg-white px-5 py-3 text-sm font-semibold dark:border-white/10 dark:bg-[#17181c]"
+              >
+                Save Order
+              </button>
+
+              {editingPackageId && (
+                <button
+                  type="button"
+                  onClick={resetPackageForm}
+                  className="inline-flex items-center gap-2 rounded-full border border-black/10 bg-white px-5 py-3 text-sm font-semibold dark:border-white/10 dark:bg-[#17181c]"
+                >
+                  <X className="h-4 w-4" />
+                  Cancel Edit
+                </button>
+              )}
+            </div>
+          </form>
+
+          <div className="mt-6 grid gap-4 lg:grid-cols-2">
+            {packages.map((row, index) => (
+              <div
+                key={row.id}
+                className="rounded-3xl border border-black/5 bg-[#f7f5ef] p-4 dark:border-white/10 dark:bg-white/5"
+              >
+                <div className="flex flex-wrap justify-between gap-3">
+                  <h3 className="text-lg font-semibold">{row.title}</h3>
+                  <div className="flex flex-wrap gap-2">
+                    <button
+                      type="button"
+                      onClick={() => movePackage(index, -1)}
+                      className="rounded-full border border-black/10 bg-white p-2 dark:border-white/10 dark:bg-[#17181c]"
+                    >
+                      <ChevronUp className="h-4 w-4" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => movePackage(index, 1)}
+                      className="rounded-full border border-black/10 bg-white p-2 dark:border-white/10 dark:bg-[#17181c]"
+                    >
+                      <ChevronDown className="h-4 w-4" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => editPackage(row)}
+                      className="rounded-full border border-black/10 bg-white p-2 dark:border-white/10 dark:bg-[#17181c]"
+                    >
+                      <Edit3 className="h-4 w-4" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => deletePackage(row.id)}
+                      className="rounded-full border border-red-200 bg-white p-2 text-red-600 dark:border-red-400/20 dark:bg-[#17181c]"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </button>
+                  </div>
+                </div>
+
+                <p className="mt-3 text-sm leading-7 text-slate-600 dark:text-slate-300">
+                  {row.description}
+                </p>
+
+                <div className="mt-4">
+                  <ImageStrip images={row.images} emptyLabel="No package images uploaded." />
+                </div>
+              </div>
+            ))}
+
+            {packages.length === 0 && (
+              <div className="rounded-2xl border border-dashed border-black/10 px-4 py-6 text-sm text-slate-500 dark:border-white/10 dark:text-slate-300">
+                No packages added yet.
+              </div>
+            )}
+          </div>
+        </SectionCard>
+
+        <SectionCard
+          title="Venue Spaces"
+          subtitle="Manage facilities, tourism office cards, and homepage visibility."
+          icon={LayoutGrid}
+        >
+          <form
+            onSubmit={submitSpace}
+            className="grid gap-4 rounded-3xl border border-black/5 bg-[#f7f5ef] p-5 dark:border-white/10 dark:bg-white/5 lg:grid-cols-2"
+          >
+            <input
+              value={spaceForm.title}
+              onChange={(e) =>
+                setSpaceForm((prev) => ({ ...prev, title: e.target.value }))
+              }
+              placeholder="Space title"
+              className="h-12 rounded-2xl border border-black/10 bg-white px-4 text-sm outline-none dark:border-white/10 dark:bg-[#121318]"
+              required
+            />
+
+            <input
+              value={spaceForm.category}
+              onChange={(e) =>
+                setSpaceForm((prev) => ({ ...prev, category: e.target.value }))
+              }
+              placeholder="Category"
+              className="h-12 rounded-2xl border border-black/10 bg-white px-4 text-sm outline-none dark:border-white/10 dark:bg-[#121318]"
+              required
+            />
+
+            <input
+              value={spaceForm.capacity}
+              onChange={(e) =>
+                setSpaceForm((prev) => ({ ...prev, capacity: e.target.value }))
+              }
+              placeholder="Capacity"
+              className="h-12 rounded-2xl border border-black/10 bg-white px-4 text-sm outline-none dark:border-white/10 dark:bg-[#121318]"
+            />
+
+            <label className="inline-flex items-center gap-2 rounded-2xl border border-black/10 bg-white px-4 py-3 text-sm dark:border-white/10 dark:bg-[#121318]">
+              <input
+                type="checkbox"
+                checked={spaceForm.homepageVisible}
+                onChange={(e) =>
+                  setSpaceForm((prev) => ({
+                    ...prev,
+                    homepageVisible: e.target.checked,
+                  }))
+                }
+              />
+              Show on homepage
+            </label>
+
+            <textarea
+              value={spaceForm.shortDescription}
+              onChange={(e) =>
+                setSpaceForm((prev) => ({
+                  ...prev,
+                  shortDescription: e.target.value,
+                }))
+              }
+              placeholder="Short description"
+              rows={3}
+              className="lg:col-span-2 rounded-2xl border border-black/10 bg-white px-4 py-3 text-sm outline-none dark:border-white/10 dark:bg-[#121318]"
+              required
+            />
+
+            <textarea
+              value={spaceForm.summary}
+              onChange={(e) =>
+                setSpaceForm((prev) => ({ ...prev, summary: e.target.value }))
+              }
+              placeholder="Summary"
+              rows={3}
+              className="lg:col-span-2 rounded-2xl border border-black/10 bg-white px-4 py-3 text-sm outline-none dark:border-white/10 dark:bg-[#121318]"
+            />
+
+            <textarea
+              value={spaceForm.detailsText}
+              onChange={(e) =>
+                setSpaceForm((prev) => ({
+                  ...prev,
+                  detailsText: e.target.value,
+                }))
+              }
+              placeholder="Details, one per line"
+              rows={5}
+              className="lg:col-span-2 rounded-2xl border border-black/10 bg-white px-4 py-3 text-sm outline-none dark:border-white/10 dark:bg-[#121318]"
+            />
+
+            <div>
+              <label className="mb-2 block text-sm font-semibold">Light image</label>
+              <input
+                type="file"
+                accept="image/*"
+                onChange={handleSpaceLightFile}
+                className="block w-full text-sm"
+              />
+            </div>
+
+            <div>
+              <label className="mb-2 block text-sm font-semibold">Dark image</label>
+              <input
+                type="file"
+                accept="image/*"
+                onChange={handleSpaceDarkFile}
+                className="block w-full text-sm"
+              />
+            </div>
+
+            <div className="lg:col-span-2 flex flex-wrap gap-3">
+              <button
+                type="submit"
+                className="inline-flex items-center gap-2 rounded-full bg-[#174f40] px-5 py-3 text-sm font-semibold text-white transition hover:opacity-90 dark:bg-[#2d47ff]"
+              >
+                {editingSpaceId ? <Save className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
+                {editingSpaceId ? 'Update Space' : 'Create Space'}
+              </button>
+
+              <button
+                type="button"
+                onClick={saveSpaceSort}
+                className="rounded-full border border-black/10 bg-white px-5 py-3 text-sm font-semibold dark:border-white/10 dark:bg-[#17181c]"
+              >
+                Save Order
+              </button>
+
+              {editingSpaceId && (
+                <button
+                  type="button"
+                  onClick={resetSpaceForm}
+                  className="inline-flex items-center gap-2 rounded-full border border-black/10 bg-white px-5 py-3 text-sm font-semibold dark:border-white/10 dark:bg-[#17181c]"
+                >
+                  <X className="h-4 w-4" />
+                  Cancel Edit
+                </button>
+              )}
+            </div>
+          </form>
+
+          <div className="mt-6 grid gap-4">
+            {spaces.map((row, index) => (
+              <div
+                key={row.id}
+                className="rounded-3xl border border-black/5 bg-[#f7f5ef] p-4 dark:border-white/10 dark:bg-white/5"
+              >
+                <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+                  <div className="max-w-3xl">
+                    <div className="flex flex-wrap gap-2 text-xs">
+                      <span className="rounded-full bg-slate-100 px-3 py-1 dark:bg-white/10">
+                        {row.category}
+                      </span>
+                      <span className="rounded-full bg-slate-100 px-3 py-1 dark:bg-white/10">
+                        {row.capacity || 'No capacity'}
+                      </span>
+                      <span className="rounded-full bg-slate-100 px-3 py-1 dark:bg-white/10">
+                        {row.homepageVisible ? 'Homepage Visible' : 'Hidden from Homepage'}
+                      </span>
+                    </div>
+
+                    <h3 className="mt-2 text-lg font-semibold">{row.title}</h3>
+                    <p className="mt-2 text-sm leading-7 text-slate-600 dark:text-slate-300">
+                      {row.shortDescription}
+                    </p>
+                    {row.summary && (
+                      <p className="mt-2 text-sm leading-7 text-slate-500 dark:text-slate-300">
+                        {row.summary}
+                      </p>
+                    )}
+
+                    {row.details.length > 0 && (
+                      <ul className="mt-3 space-y-1 text-sm text-slate-600 dark:text-slate-300">
+                        {row.details.slice(0, 4).map((detail) => (
+                          <li key={detail}>• {detail}</li>
+                        ))}
+                      </ul>
+                    )}
+
+                    <div className="mt-4 flex flex-wrap gap-3">
+                      {row.lightImage && (
+                        <img
+                          src={row.lightImage}
+                          alt={`${row.title} light`}
+                          className="h-20 w-28 rounded-2xl border border-black/10 object-cover dark:border-white/10"
+                        />
+                      )}
+                      {row.darkImage && (
+                        <img
+                          src={row.darkImage}
+                          alt={`${row.title} dark`}
+                          className="h-20 w-28 rounded-2xl border border-black/10 object-cover dark:border-white/10"
+                        />
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="flex flex-wrap gap-2">
+                    <button
+                      type="button"
+                      onClick={() => moveSpace(index, -1)}
+                      className="rounded-full border border-black/10 bg-white p-2 dark:border-white/10 dark:bg-[#17181c]"
+                    >
+                      <ChevronUp className="h-4 w-4" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => moveSpace(index, 1)}
+                      className="rounded-full border border-black/10 bg-white p-2 dark:border-white/10 dark:bg-[#17181c]"
+                    >
+                      <ChevronDown className="h-4 w-4" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => editSpace(row)}
+                      className="rounded-full border border-black/10 bg-white p-2 dark:border-white/10 dark:bg-[#17181c]"
+                    >
+                      <Edit3 className="h-4 w-4" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => deleteSpace(row.id)}
+                      className="rounded-full border border-red-200 bg-white p-2 text-red-600 dark:border-red-400/20 dark:bg-[#17181c]"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ))}
+
+            {spaces.length === 0 && (
+              <div className="rounded-2xl border border-dashed border-black/10 px-4 py-6 text-sm text-slate-500 dark:border-white/10 dark:text-slate-300">
+                No spaces added yet.
+              </div>
+            )}
+          </div>
+        </SectionCard>
+
+        <SectionCard
+          title="Homepage Stats"
+          subtitle="Manage the counters and quick stats shown on the homepage."
+          icon={ShieldCheck}
+        >
+          <form
+            onSubmit={submitStat}
+            className="grid gap-4 rounded-3xl border border-black/5 bg-[#f7f5ef] p-5 dark:border-white/10 dark:bg-white/5 lg:grid-cols-3"
+          >
+            <input
+              value={statForm.label}
+              onChange={(e) =>
+                setStatForm((prev) => ({ ...prev, label: e.target.value }))
+              }
+              placeholder="Label"
+              className="h-12 rounded-2xl border border-black/10 bg-white px-4 text-sm outline-none dark:border-white/10 dark:bg-[#121318]"
+              required
+            />
+            <input
+              value={statForm.value}
+              onChange={(e) =>
+                setStatForm((prev) => ({ ...prev, value: e.target.value }))
+              }
+              placeholder="Value"
+              className="h-12 rounded-2xl border border-black/10 bg-white px-4 text-sm outline-none dark:border-white/10 dark:bg-[#121318]"
+              required
+            />
+            <input
+              value={statForm.suffix}
+              onChange={(e) =>
+                setStatForm((prev) => ({ ...prev, suffix: e.target.value }))
+              }
+              placeholder="Suffix"
+              className="h-12 rounded-2xl border border-black/10 bg-white px-4 text-sm outline-none dark:border-white/10 dark:bg-[#121318]"
+            />
+
+            <div className="lg:col-span-3 flex flex-wrap gap-3">
+              <button
+                type="submit"
+                className="inline-flex items-center gap-2 rounded-full bg-[#174f40] px-5 py-3 text-sm font-semibold text-white transition hover:opacity-90 dark:bg-[#2d47ff]"
+              >
+                {editingStatId ? <Save className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
+                {editingStatId ? 'Update Stat' : 'Create Stat'}
+              </button>
+
+              <button
+                type="button"
+                onClick={saveStatSort}
+                className="rounded-full border border-black/10 bg-white px-5 py-3 text-sm font-semibold dark:border-white/10 dark:bg-[#17181c]"
+              >
+                Save Order
+              </button>
+
+              {editingStatId && (
+                <button
+                  type="button"
+                  onClick={resetStatForm}
+                  className="inline-flex items-center gap-2 rounded-full border border-black/10 bg-white px-5 py-3 text-sm font-semibold dark:border-white/10 dark:bg-[#17181c]"
+                >
+                  <X className="h-4 w-4" />
+                  Cancel Edit
+                </button>
+              )}
+            </div>
+          </form>
+
+          <div className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+            {stats.map((row, index) => (
+              <div
+                key={row.id}
+                className="rounded-3xl border border-black/5 bg-[#f7f5ef] p-4 dark:border-white/10 dark:bg-white/5"
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <div className="text-3xl font-semibold">
+                      {row.value}
+                      {row.suffix}
+                    </div>
+                    <div className="mt-1 text-sm text-slate-500 dark:text-slate-300">
+                      {row.label}
+                    </div>
+                  </div>
+
+                  <div className="flex flex-wrap gap-2">
+                    <button
+                      type="button"
+                      onClick={() => moveStat(index, -1)}
+                      className="rounded-full border border-black/10 bg-white p-2 dark:border-white/10 dark:bg-[#17181c]"
+                    >
+                      <ChevronUp className="h-4 w-4" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => moveStat(index, 1)}
+                      className="rounded-full border border-black/10 bg-white p-2 dark:border-white/10 dark:bg-[#17181c]"
+                    >
+                      <ChevronDown className="h-4 w-4" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => editStat(row)}
+                      className="rounded-full border border-black/10 bg-white p-2 dark:border-white/10 dark:bg-[#17181c]"
+                    >
+                      <Edit3 className="h-4 w-4" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => deleteStat(row.id)}
+                      className="rounded-full border border-red-200 bg-white p-2 text-red-600 dark:border-red-400/20 dark:bg-[#17181c]"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ))}
+
+            {stats.length === 0 && (
+              <div className="rounded-2xl border border-dashed border-black/10 px-4 py-6 text-sm text-slate-500 dark:border-white/10 dark:text-slate-300">
+                No homepage stats added yet.
+              </div>
+            )}
+          </div>
+        </SectionCard>
+
+        <section className="grid gap-6 lg:grid-cols-3">
+          <div className="rounded-[2rem] border border-black/5 bg-white p-6 shadow-sm dark:border-white/10 dark:bg-[#121318]">
+            <div className="inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-[#e8f2ee] text-[#174f40] dark:bg-[#18231f] dark:text-[#8ea3ff]">
+              <MapPin className="h-5 w-5" />
+            </div>
+            <h3 className="mt-4 text-xl font-semibold">Address</h3>
+            <p className="mt-2 text-sm leading-7 text-slate-500 dark:text-slate-300">
+              {siteConfig.address || 'No address saved yet.'}
+            </p>
+          </div>
+
+          <div className="rounded-[2rem] border border-black/5 bg-white p-6 shadow-sm dark:border-white/10 dark:bg-[#121318]">
+            <div className="inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-[#e8f2ee] text-[#174f40] dark:bg-[#18231f] dark:text-[#8ea3ff]">
+              <Phone className="h-5 w-5" />
+            </div>
+            <h3 className="mt-4 text-xl font-semibold">Phone</h3>
+            <p className="mt-2 text-sm leading-7 text-slate-500 dark:text-slate-300">
+              {siteConfig.phone || 'No phone saved yet.'}
+            </p>
+          </div>
+
+          <div className="rounded-[2rem] border border-black/5 bg-white p-6 shadow-sm dark:border-white/10 dark:bg-[#121318]">
+            <div className="inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-[#e8f2ee] text-[#174f40] dark:bg-[#18231f] dark:text-[#8ea3ff]">
+              <Mail className="h-5 w-5" />
+            </div>
+            <h3 className="mt-4 text-xl font-semibold">Email</h3>
+            <p className="mt-2 text-sm leading-7 text-slate-500 dark:text-slate-300">
+              {siteConfig.email || 'No email saved yet.'}
+            </p>
+          </div>
+        </section>
+      </div>
+    </AdminLayout>
+  );
 }

@@ -3,26 +3,45 @@
 namespace Database\Seeders;
 
 use App\Models\User;
-use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
 
 class UsersTableSeeder extends Seeder
 {
-    /**
-     * Run the database seeds.
-     */
     public function run(): void
     {
-        User::firstOrCreate(
-            ['email' => 'techniqalgroup@gmail.com'],
+        $users = [
             [
-                'name' => 'TechniqalGroup',
-                'password' => Hash::make('asdasdasd'),
-                'email_verified_at' => now(),
-            ]
-        );
+                'name' => 'BCCC Admin',
+                'email' => 'admin@bccc-ease.test',
+                'password' => 'password123',
+            ],
+            [
+                'name' => 'BCCC Manager',
+                'email' => 'manager@bccc-ease.test',
+                'password' => 'password123',
+            ],
+            [
+                'name' => 'BCCC Staff',
+                'email' => 'staff@bccc-ease.test',
+                'password' => 'password123',
+            ],
+            [
+                'name' => 'BCCC Client User',
+                'email' => 'user@bccc-ease.test',
+                'password' => 'password123',
+            ],
+        ];
 
-        User::factory()->count(10)->create();
+        foreach ($users as $entry) {
+            User::updateOrCreate(
+                ['email' => $entry['email']],
+                [
+                    'name' => $entry['name'],
+                    'password' => Hash::make($entry['password']),
+                    'email_verified_at' => now(),
+                ]
+            );
+        }
     }
 }

@@ -1,50 +1,45 @@
-// Components
-import EmailVerificationNotificationController from '@/actions/App/Http/Controllers/Auth/EmailVerificationNotificationController';
-import { logout } from '@/routes';
-import { Form, Head } from '@inertiajs/react';
+import { FormEvent } from 'react';
+import { Head, Link, useForm } from '@inertiajs/react';
 import { LoaderCircle } from 'lucide-react';
-
-import TextLink from '@/components/text-link';
 import { Button } from '@/components/ui/button';
 import AuthLayout from '@/layouts/auth-layout';
 
 export default function VerifyEmail({ status }: { status?: string }) {
-    return (
-        <AuthLayout
-            title="Verify email"
-            description="Please verify your email address by clicking on the link we just emailed to you."
+  const { post, processing } = useForm({});
+
+  const submit = (e: FormEvent) => {
+    e.preventDefault();
+    post('/email/verification-notification');
+  };
+
+  return (
+    <AuthLayout
+      title="Verify email"
+      description="Please verify your email address by clicking the link we sent to your inbox."
+    >
+      <Head title="Email verification" />
+
+      {status === 'verification-link-sent' && (
+        <div className="mb-4 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800 dark:border-emerald-400/20 dark:bg-emerald-500/10 dark:text-emerald-200">
+          A new verification link has been sent to your email address.
+        </div>
+      )}
+
+      <form onSubmit={submit} className="space-y-6 text-center">
+        <Button type="submit" disabled={processing} variant="secondary">
+          {processing && <LoaderCircle className="h-4 w-4 animate-spin" />}
+          Resend verification email
+        </Button>
+
+        <Link
+          href="/logout"
+          method="post"
+          as="button"
+          className="mx-auto block text-sm underline underline-offset-4"
         >
-            <Head title="Email verification" />
-
-            {status === 'verification-link-sent' && (
-                <div className="mb-4 text-center text-sm font-medium text-green-600">
-                    A new verification link has been sent to the email address
-                    you provided during registration.
-                </div>
-            )}
-
-            <Form
-                {...EmailVerificationNotificationController.store.form()}
-                className="space-y-6 text-center"
-            >
-                {({ processing }) => (
-                    <>
-                        <Button disabled={processing} variant="secondary">
-                            {processing && (
-                                <LoaderCircle className="h-4 w-4 animate-spin" />
-                            )}
-                            Resend verification email
-                        </Button>
-
-                        <TextLink
-                            href={logout()}
-                            className="mx-auto block text-sm"
-                        >
-                            Log out
-                        </TextLink>
-                    </>
-                )}
-            </Form>
-        </AuthLayout>
-    );
+          Log out
+        </Link>
+      </form>
+    </AuthLayout>
+  );
 }

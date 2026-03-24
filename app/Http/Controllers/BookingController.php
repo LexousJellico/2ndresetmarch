@@ -22,6 +22,7 @@ use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
 use Inertia\Response;
 
+
 class BookingController extends Controller
 {
     public function __construct(
@@ -130,10 +131,12 @@ class BookingController extends Controller
 
     public function show(Request $request, Booking $booking): Response
     {
-        $this->ensureBookingAccess($request, $booking);
-        $this->markAsViewed($request, $booking);
+    $this->ensureBookingAccess($request, $booking);
+    $this->markAsViewed($request, $booking);
 
-        $booking->loadMissing(['service', 'bookingServices.service', 'payments', 'createdBy']);
+    $this->bookings->syncLifecycleStatus($booking);
+    $booking->refresh()->loadMissing(['service', 'bookingServices.service', 'payments', 'createdBy']);
+
 
         $services = ServiceResource::collection(Service::orderBy('name')->get())
             ->resolve($request);
@@ -175,11 +178,13 @@ class BookingController extends Controller
 
     public function edit(Request $request, Booking $booking): Response
     {
-        $this->ensureBookingAccess($request, $booking);
+    $this->ensureBookingAccess($request, $booking);
 
-        $this->markAsViewed($request, $booking);
+    $this->markAsViewed($request, $booking);
 
-        $booking->loadMissing(['createdBy']);
+    $this->bookings->syncLifecycleStatus($booking);
+    $booking->refresh()->loadMissing(['createdBy']);
+
 
         $unavailableDates = $this->bookings->getUnavailableDates($booking->id);
 

@@ -1,117 +1,91 @@
 import { useEffect, useRef, useState } from 'react';
-
-import { stats } from '@/data/stats';
+import { stats as fallbackStats, type StatItem } from '@/data/stats';
 
 function CountUpStat({
-    value,
-    suffix,
-    label,
-    startAnimation,
-}: {
-    value: string;
-    suffix?: string;
-    label: string;
-    startAnimation: boolean;
-}) {
-    const target = Number(value);
-    const [displayValue, setDisplayValue] = useState(0);
+  value,
+  suffix,
+  label,
+  start,
+}: StatItem & { start: boolean }) {
+  const target = Number(value);
+  const [displayValue, setDisplayValue] = useState(0);
 
-    useEffect(() => {
-        if (!startAnimation) return;
+  useEffect(() => {
+    if (!start || Number.isNaN(target)) return;
 
-        let animationFrame = 0;
-        const duration = 1300;
-        const start = performance.now();
+    let frame = 0;
+    const totalFrames = 45;
+    const counter = window.setInterval(() => {
+      frame += 1;
+      const progress = frame / totalFrames;
+      const current = Math.round(target * progress);
 
-        const tick = (now: number) => {
-            const progress = Math.min((now - start) / duration, 1);
-            const eased = 1 - Math.pow(1 - progress, 3);
-            setDisplayValue(Math.round(target * eased));
+      setDisplayValue(current);
 
-            if (progress < 1) {
-                animationFrame = requestAnimationFrame(tick);
-            }
-        };
+      if (frame >= totalFrames) {
+        window.clearInterval(counter);
+        setDisplayValue(target);
+      }
+    }, 24);
 
-        animationFrame = requestAnimationFrame(tick);
+    return () => window.clearInterval(counter);
+  }, [start, target]);
 
-        return () => cancelAnimationFrame(animationFrame);
-    }, [startAnimation, target]);
-
-    return (
-        <div className="rounded-[1.8rem] border border-white/15 bg-white/10 p-5 backdrop-blur">
-            <div className="text-4xl font-black tracking-tight text-white sm:text-5xl">
-                {displayValue.toLocaleString()}
-                {suffix ?? ''}
-            </div>
-            <p className="mt-2 text-sm uppercase tracking-[0.14em] text-white/80">{label}</p>
-        </div>
-    );
+  return (
+    <div className="rounded-3xl border border-black/5 bg-white/70 px-5 py-6 shadow-sm backdrop-blur dark:border-white/10 dark:bg-white/5">
+      <div className="text-3xl font-semibold tracking-tight text-slate-900 dark:text-white sm:text-4xl">
+        {displayValue}
+        {suffix}
+      </div>
+      <div className="mt-2 text-sm font-medium uppercase tracking-[0.28em] text-slate-500 dark:text-slate-300">
+        {label}
+      </div>
+    </div>
+  );
 }
 
-export default function StatsBanner() {
-    const sectionRef = useRef<HTMLElement | null>(null);
-    const [startAnimation, setStartAnimation] = useState(false);
+export default function StatsBanner({ items }: { items?: StatItem[] }) {
+  const stats = items && items.length > 0 ? items : fallbackStats;
+  const sectionRef = useRef<HTMLElement | null>(null);
+  const [startAnimation, setStartAnimation] = useState(false);
 
-    useEffect(() => {
-        const node = sectionRef.current;
-        if (!node) return;
+  useEffect(() => {
+    const section = sectionRef.current;
+    if (!section) return;
 
-        const observer = new IntersectionObserver(
-            ([entry]) => {
-                if (entry.isIntersecting) {
-                    setStartAnimation(true);
-                    observer.disconnect();
-                }
-            },
-            { threshold: 0.25 },
-        );
-
-        observer.observe(node);
-
-        return () => observer.disconnect();
-    }, []);
-
-    return (
-        <section ref={sectionRef} className="relative overflow-hidden border-y border-black/10 dark:border-white/10">
-            <img
-                src="/marketing/images/facilities/gallery-2600.jpg"
-                alt="Venue at a glance"
-                className="absolute inset-0 h-full w-full object-cover dark:hidden"
-            />
-            <img
-                src="/marketing/images/facilities/darkmain.jpg"
-                alt="Venue at a glance"
-                className="absolute inset-0 hidden h-full w-full object-cover dark:block"
-            />
-            <div className="absolute inset-0 bg-[#10261f]/72 dark:bg-black/72" />
-
-            <div className="relative mx-auto max-w-7xl px-4 py-16 lg:px-6 lg:py-20">
-                <div className="max-w-3xl">
-                    <p className="text-xs font-black uppercase tracking-[0.18em] text-[#bfe2d6] dark:text-[#9dc0ff]">
-                        Venue At A Glance
-                    </p>
-                    <h2 className="mt-3 text-3xl font-black tracking-tight text-white sm:text-4xl">
-                        Full-width venue impact section with animated counts.
-                    </h2>
-                    <p className="mt-3 text-sm leading-7 text-white/80">
-                        This section now stretches across the screen, stays responsive, and animates the numbers only
-                        when it first enters view.
-                    </p>
-                </div>
-
-                <div className="mt-8 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-                    {stats.map((item) => (
-                        <CountUpStat
-                            key={item.label}
-                            value={item.value}
-                            suffix={item.suffix}
-                            label={item.label}
-                            startAnimation={startAnimation}
-                        />
-                    ))}
-                </div>
-            </div>
-        </section>
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries.some((entry) => entry.isIntersecting)) {
+          setStartAnimation(true);
+          observer.disconnect();
+        }
+      },
+      { threshold: 0.35 },
     );
+
+    observer.observe(section);
+
+    return () => observer.disconnect();
+  }, []);
+
+  return (
+    <section
+      ref={sectionRef}
+      className="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8"
+    >
+      <div className="rounded-[2rem] border border-black/5 bg-gradient-to-br from-emerald-50 via-white to-slate-100 px-6 py-8 shadow-[0_25px_80px_rgba(15,23,42,0.08)] dark:border-white/10 dark:bg-gradient-to-br dark:from-emerald-500/10 dark:via-slate-950 dark:to-slate-900 dark:shadow-[0_25px_80px_rgba(0,0,0,0.35)] sm:px-8 lg:px-10">
+        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+          {stats.map((stat) => (
+            <CountUpStat
+              key={stat.label}
+              value={stat.value}
+              suffix={stat.suffix}
+              label={stat.label}
+              start={startAnimation}
+            />
+          ))}
+        </div>
+      </div>
+    </section>
+  );
 }

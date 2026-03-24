@@ -1,4 +1,5 @@
 export type EventItem = {
+    dateKey: string | null;
     title: string;
     date: string;
     summary: string;

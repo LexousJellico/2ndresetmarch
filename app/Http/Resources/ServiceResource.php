@@ -8,12 +8,13 @@ use Illuminate\Http\Resources\Json\JsonResource;
 class ServiceResource extends JsonResource
 {
     /**
-     * Transform the resource into an array.
-     *
      * @return array<string, mixed>
      */
     public function toArray(Request $request): array
     {
+        $minGuests = $this->min_guests;
+        $maxGuests = $this->max_guests;
+
         return [
             'id' => $this->id,
             'name' => $this->name,
@@ -21,8 +22,16 @@ class ServiceResource extends JsonResource
             'uom' => $this->uom,
             'price' => $this->price,
             'quantity' => $this->quantity,
+            'min_guests' => $minGuests,
+            'max_guests' => $maxGuests,
+            'capacity_note' => $this->capacity_note,
+            'is_guest_restricted' => $minGuests !== null || $maxGuests !== null,
             'service_type_id' => $this->service_type_id,
-            'service_type' => $this->whenLoaded('serviceType', fn () => $this->serviceType?->name, $this->serviceType?->name),
+            'service_type' => $this->whenLoaded(
+                'serviceType',
+                fn () => $this->serviceType?->name,
+                $this->serviceType?->name
+            ),
             'created_at' => $this->created_at,
         ];
     }

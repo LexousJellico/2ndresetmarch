@@ -1,5 +1,8 @@
 import { Head } from '@inertiajs/react';
-
+import type { EventItem } from '@/data/events';
+import type { Facility } from '@/data/facilities';
+import type { OfferItem } from '@/data/offers';
+import type { StatItem } from '@/data/stats';
 import AmenitiesRow from '@/components/public/amenities-row';
 import AvailabilityStrip from '@/components/public/availability-strip';
 import EventsHighlights from '@/components/public/events-highlights';
@@ -11,22 +14,41 @@ import StatsBanner from '@/components/public/stats-banner';
 import WelcomeSection from '@/components/public/welcome-section';
 import PublicLayout from '@/layouts/public-layout';
 
-export default function Home() {
-    return (
-        <PublicLayout>
-            <Head title="Home" />
+type VenueOption = {
+  label: string;
+  value: string;
+};
 
-            <div className="space-y-8 pb-12 lg:space-y-10">
-                <HeroBanner />
-                <AvailabilityStrip venueOptions={[]} />
-                <WelcomeSection />
-                <SpacesGrid />
-                <StatsBanner />
-                <EventsHighlights />
-                <LocationAssistance />
-                <SpecialOffers />
-                <AmenitiesRow />
-            </div>
-        </PublicLayout>
-    );
+type HomeProps = {
+  venueOptions?: VenueOption[];
+  events?: EventItem[];
+  spaces?: Facility[];
+  stats?: StatItem[];
+  offers?: OfferItem[];
+};
+
+export default function Home({
+  venueOptions = [],
+  events = [],
+  spaces = [],
+  stats = [],
+  offers = [],
+}: HomeProps) {
+  return (
+    <PublicLayout>
+      <Head title="Home" />
+
+      <div className="space-y-8 pb-12 lg:space-y-10">
+        <HeroBanner venueOptions={[]} />
+        <AvailabilityStrip venueOptions={venueOptions} />
+        <WelcomeSection />
+        <SpacesGrid items={spaces} />
+        <StatsBanner items={stats} />
+        <EventsHighlights items={events} />
+        <LocationAssistance />
+        <SpecialOffers items={offers} />
+        <AmenitiesRow />
+      </div>
+    </PublicLayout>
+  );
 }

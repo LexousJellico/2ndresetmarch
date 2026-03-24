@@ -28,26 +28,46 @@ export interface SharedData {
 export interface User {
     id: number;
     name: string;
+    first_name?: string | null;
+    middle_name?: string | null;
+    last_name?: string | null;
     email: string;
+    phone_number?: string | null;
+    organization_name?: string | null;
+    organization_type?: string | null;
+    position_title?: string | null;
+    address_line1?: string | null;
+    barangay?: string | null;
+    city_municipality?: string | null;
+    province?: string | null;
+    postal_code?: string | null;
+    country?: string | null;
+    google_avatar?: string | null;
     avatar?: string;
     email_verified_at: string | null;
     two_factor_enabled?: boolean;
     created_at: string;
     updated_at: string;
-    [key: string]: unknown; // This allows for additional properties...
+    [key: string]: unknown;
 }
 
+
 export interface Service {
-  id: number;
+    id: number;
     service_type_id?: number | null;
     service_type?: string | null;
-  name: string;
-  description: string;
-  uom: string;
-  price: number;
-  quantity: number;
-  created_at: string;
+    name: string;
+    description: string;
+    uom: string;
+    price: number;
+    quantity: number;
+    min_guests?: number | null;
+    max_guests?: number | null;
+    capacity_note?: string | null;
+    is_guest_restricted?: boolean;
+    created_at: string;
 }
+
 
 export interface ServiceTypeOption {
     id: number;

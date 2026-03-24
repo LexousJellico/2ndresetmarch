@@ -11,30 +11,25 @@ use Illuminate\Validation\ValidationException;
 
 class LoginRequest extends FormRequest
 {
-    /**
-     * Determine if the user is authorized to make this request.
-     */
     public function authorize(): bool
     {
         return true;
     }
 
     /**
-     * Get the validation rules that apply to the request.
-     *
-     * @return array<string, \Illuminate\Contracts\Validation\ValidationRule|array<mixed>|string>
+     * @return array<string, mixed>
      */
     public function rules(): array
     {
         return [
             'email' => ['required', 'string', 'email'],
             'password' => ['required', 'string'],
+            'remember' => ['nullable', 'boolean'],
+            'redirect_to' => ['nullable', 'string'],
         ];
     }
 
     /**
-     * Validate the request's credentials and return the user without logging them in.
-     *
      * @throws \Illuminate\Validation\ValidationException
      */
     public function validateCredentials(): User
@@ -42,7 +37,9 @@ class LoginRequest extends FormRequest
         $this->ensureIsNotRateLimited();
 
         /** @var User|null $user */
-        $user = Auth::getProvider()->retrieveByCredentials($this->only('email', 'password'));
+        $user = Auth::getProvider()->retrieveByCredentials(
+            $this->only('email', 'password')
+        );
 
         if (! $user || ! Auth::getProvider()->validateCredentials($user, $this->only('password'))) {
             RateLimiter::hit($this->throttleKey());
@@ -58,8 +55,6 @@ class LoginRequest extends FormRequest
     }
 
     /**
-     * Ensure the login request is not rate limited.
-     *
      * @throws \Illuminate\Validation\ValidationException
      */
     public function ensureIsNotRateLimited(): void
@@ -75,14 +70,11 @@ class LoginRequest extends FormRequest
         throw ValidationException::withMessages([
             'email' => __('auth.throttle', [
                 'seconds' => $seconds,
-                'minutes' => ceil($seconds / 60),
+                'minutes' => (int) ceil($seconds / 60),
             ]),
         ]);
     }
 
-    /**
-     * Get the rate-limiting throttle key for the request.
-     */
     public function throttleKey(): string
     {
         return $this->string('email')

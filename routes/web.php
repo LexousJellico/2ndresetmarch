@@ -1,8 +1,12 @@
 <?php
 
+use App\Http\Controllers\AdminPublicContentController;
+use App\Http\Controllers\AdminSortController;
 use App\Http\Controllers\BookingController;
 use App\Http\Controllers\CalendarBlockController;
 use App\Http\Controllers\NotificationController;
+use App\Http\Controllers\PublicAvailabilityController;
+use App\Http\Controllers\PublicSiteController;
 use App\Http\Controllers\ServiceController;
 use App\Http\Controllers\ServiceTypeController;
 use App\Http\Controllers\UserController;
@@ -14,51 +18,60 @@ use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
-use App\Http\Controllers\AdminPublicContentController;
-use App\Http\Controllers\PublicAvailabilityController;
-use App\Http\Controllers\AdminSortController;
 
 /*
 |--------------------------------------------------------------------------
 | Public Marketing Routes
 |--------------------------------------------------------------------------
 */
+
 Route::post('/public/availability-check', [PublicAvailabilityController::class, 'check'])
     ->name('public.availability.check');
 
-Route::get('/', function () {
-    return Inertia::render('public/home');
-})->name('home');
+Route::get('/', [PublicSiteController::class, 'home'])
+    ->name('home');
 
-Route::get('/facilities', function () {
-    return Inertia::render('public/facilities');
-})->name('public.facilities');
+Route::get('/facilities', [PublicSiteController::class, 'facilities'])
+    ->name('public.facilities');
 
-Route::get('/facilities/{slug}', function (string $slug) {
-    return Inertia::render('public/facility-show', [
-        'slug' => $slug,
-    ]);
-})->where('slug', '[A-Za-z0-9\-]+')->name('public.facilities.show');
+Route::get('/facilities/{slug}', [PublicSiteController::class, 'facilityShow'])
+    ->where('slug', '[A-Za-z0-9\-]+')
+    ->name('public.facilities.show');
 
-Route::get('/events', function () {
-    return Inertia::render('public/events');
-})->name('public.events');
+Route::get('/events', [PublicSiteController::class, 'events'])
+    ->name('public.events');
 
-Route::get('/calendar', function () {
-    return Inertia::render('public/calendar');
-})->name('public.calendar');
+Route::get('/calendar', [PublicSiteController::class, 'calendar'])
+    ->name('public.calendar');
 
-Route::get('/tourism-office', function () {
-    return Inertia::render('public/tourism-office');
-})->name('public.tourism-office');
+Route::get('/tourism-office', [PublicSiteController::class, 'tourismOffice'])
+    ->name('public.tourism-office');
 
-Route::get('/contact', function () {
-    return Inertia::render('public/contact');
-})->name('public.contact');
+Route::get('/contact', [PublicSiteController::class, 'contact'])
+    ->name('public.contact');
 
-Route::get('/guidelines', function () {
-    return Inertia::render('public/guidelines');
-})->name('guidelines');
+Route::get('/guidelines', [PublicSiteController::class, 'guidelines'])
+    ->name('guidelines');
+
+/*
+|--------------------------------------------------------------------------
+| Dedicated Admin Entry
+|--------------------------------------------------------------------------
+*/
+
+Route::get('/admin', function (Request $request) {
+    $user = $request->user();
+
+    if ($user) {
+        if ($user->hasAnyRole(['admin', 'manager'])) {
+            return redirect()->route('admin.home');
+        }
+
+        return redirect()->route('dashboard');
+    }
+
+    return Inertia::render('admin/login');
+})->name('admin.login');
 
 /*
 |--------------------------------------------------------------------------
@@ -68,39 +81,42 @@ Route::get('/guidelines', function () {
 
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/admin/home', [AdminPublicContentController::class, 'home'])
-    ->middleware('permission:dashboard.view')
-    ->name('admin.home');
+        ->middleware('role:admin|manager')
+        ->name('admin.home');
+
     Route::middleware('role:admin|manager')
-    ->prefix('admin/sort')
-    ->name('admin.sort.')
-    ->group(function () {
-        Route::post('/events', [AdminSortController::class, 'events'])->name('events');
-        Route::post('/packages', [AdminSortController::class, 'packages'])->name('packages');
-        Route::post('/spaces', [AdminSortController::class, 'spaces'])->name('spaces');
-        Route::post('/stats', [AdminSortController::class, 'stats'])->name('stats');
-    });
+        ->prefix('admin/sort')
+        ->name('admin.sort.')
+        ->group(function () {
+            Route::post('/events', [AdminSortController::class, 'events'])->name('events');
+            Route::post('/packages', [AdminSortController::class, 'packages'])->name('packages');
+            Route::post('/spaces', [AdminSortController::class, 'spaces'])->name('spaces');
+            Route::post('/stats', [AdminSortController::class, 'stats'])->name('stats');
+        });
+
     Route::middleware('role:admin|manager')
-    ->prefix('admin')
-    ->name('admin.')
-    ->group(function () {
-        Route::post('/events', [AdminPublicContentController::class, 'storeEvent'])->name('events.store');
-        Route::put('/events/{publicEvent}', [AdminPublicContentController::class, 'updateEvent'])->name('events.update');
-        Route::delete('/events/{publicEvent}', [AdminPublicContentController::class, 'destroyEvent'])->name('events.destroy');
+        ->prefix('admin')
+        ->name('admin.')
+        ->group(function () {
+            Route::post('/events', [AdminPublicContentController::class, 'storeEvent'])->name('events.store');
+            Route::put('/events/{publicEvent}', [AdminPublicContentController::class, 'updateEvent'])->name('events.update');
+            Route::delete('/events/{publicEvent}', [AdminPublicContentController::class, 'destroyEvent'])->name('events.destroy');
 
-        Route::post('/packages', [AdminPublicContentController::class, 'storePackage'])->name('packages.store');
-        Route::put('/packages/{featurePackage}', [AdminPublicContentController::class, 'updatePackage'])->name('packages.update');
-        Route::delete('/packages/{featurePackage}', [AdminPublicContentController::class, 'destroyPackage'])->name('packages.destroy');
+            Route::post('/packages', [AdminPublicContentController::class, 'storePackage'])->name('packages.store');
+            Route::put('/packages/{featurePackage}', [AdminPublicContentController::class, 'updatePackage'])->name('packages.update');
+            Route::delete('/packages/{featurePackage}', [AdminPublicContentController::class, 'destroyPackage'])->name('packages.destroy');
 
-        Route::post('/spaces', [AdminPublicContentController::class, 'storeSpace'])->name('spaces.store');
-        Route::put('/spaces/{venueSpace}', [AdminPublicContentController::class, 'updateSpace'])->name('spaces.update');
-        Route::delete('/spaces/{venueSpace}', [AdminPublicContentController::class, 'destroySpace'])->name('spaces.destroy');
+            Route::post('/spaces', [AdminPublicContentController::class, 'storeSpace'])->name('spaces.store');
+            Route::put('/spaces/{venueSpace}', [AdminPublicContentController::class, 'updateSpace'])->name('spaces.update');
+            Route::delete('/spaces/{venueSpace}', [AdminPublicContentController::class, 'destroySpace'])->name('spaces.destroy');
 
-        Route::post('/stats', [AdminPublicContentController::class, 'storeStat'])->name('stats.store');
-        Route::put('/stats/{homepageStat}', [AdminPublicContentController::class, 'updateStat'])->name('stats.update');
-        Route::delete('/stats/{homepageStat}', [AdminPublicContentController::class, 'destroyStat'])->name('stats.destroy');
+            Route::post('/stats', [AdminPublicContentController::class, 'storeStat'])->name('stats.store');
+            Route::put('/stats/{homepageStat}', [AdminPublicContentController::class, 'updateStat'])->name('stats.update');
+            Route::delete('/stats/{homepageStat}', [AdminPublicContentController::class, 'destroyStat'])->name('stats.destroy');
 
-        Route::put('/site-settings', [AdminPublicContentController::class, 'updateSiteSettings'])->name('site-settings.update');
-    });
+            Route::put('/site-settings', [AdminPublicContentController::class, 'updateSiteSettings'])->name('site-settings.update');
+        });
+
     Route::get('/dashboard', function (Request $request) {
         /** @var BookingService $bookingService */
         $bookingService = app(BookingService::class);
@@ -115,8 +131,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
         ];
 
         $user = $request->user();
-
         $monthParam = (string) $request->query('month', '');
+
         $start = preg_match('/^\d{4}-\d{2}$/', $monthParam)
             ? Carbon::createFromFormat('Y-m', $monthParam)->startOfMonth()
             : Carbon::now()->startOfMonth();
@@ -168,7 +184,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
                 return [
                     'id' => $booking->id,
                     'kind' => 'booking',
-                    'title' => ($booking->type_of_event ? ($booking->type_of_event . ' – ') : '') . ($booking->company_name ?? 'Booking'),
+                    'title' => ($booking->type_of_event ? ($booking->type_of_event . ' – ') : '') .
+                        ($booking->company_name ?? 'Booking'),
                     'start' => optional($booking->booking_date_from)->format('Y-m-d\TH:i'),
                     'end' => optional($booking->booking_date_to)->format('Y-m-d\TH:i'),
                     'status' => $booking->booking_status,
@@ -202,7 +219,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
                 return [
                     'id' => $booking->id,
                     'kind' => 'booking',
-                    'title' => ($booking->type_of_event ? ($booking->type_of_event . ' – ') : '') . ($booking->company_name ?? 'Booking'),
+                    'title' => ($booking->type_of_event ? ($booking->type_of_event . ' – ') : '') .
+                        ($booking->company_name ?? 'Booking'),
                     'start' => optional($booking->booking_date_from)->format('Y-m-d\TH:i'),
                     'end' => optional($booking->booking_date_to)->format('Y-m-d\TH:i'),
                     'status' => $booking->booking_status,
@@ -266,7 +284,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
                         'block_id' => $calendarBlock->id,
                         'block' => $calendarBlock->block,
                         'area' => $calendarBlock->area,
-                        'title' => 'BLOCK: ' . $calendarBlock->title . ($calendarBlock->area ? (' – ' . $calendarBlock->area) : ''),
+                        'title' => 'BLOCK: ' . $calendarBlock->title .
+                            ($calendarBlock->area ? (' – ' . $calendarBlock->area) : ''),
                         'start' => $startDt->format('Y-m-d\TH:i'),
                         'end' => $endDt->format('Y-m-d\TH:i'),
                         'status' => 'unavailable',
@@ -290,13 +309,13 @@ Route::middleware(['auth', 'verified'])->group(function () {
         ->middleware('role:admin|manager')
         ->name('calendar-blocks.store');
 
-    Route::delete('/calendar-blocks/{calendarBlock}', [CalendarBlockController::class, 'destroy'])
-        ->middleware('role:admin|manager')
-        ->name('calendar-blocks.destroy');
-
     Route::put('/calendar-blocks/{calendarBlock}', [CalendarBlockController::class, 'update'])
         ->middleware('role:admin|manager')
         ->name('calendar-blocks.update');
+
+    Route::delete('/calendar-blocks/{calendarBlock}', [CalendarBlockController::class, 'destroy'])
+        ->middleware('role:admin|manager')
+        ->name('calendar-blocks.destroy');
 
     Route::resource('services', ServiceController::class)
         ->middleware('permission:services.manage');
@@ -370,11 +389,6 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::put('/users/{user}/roles', [UserRoleController::class, 'update'])
         ->middleware('permission:users.manage')
         ->name('users.roles.update');
-});
-Route::middleware('guest')->group(function () {
-    Route::get('/admin', function () {
-        return Inertia::render('admin/login');
-    })->name('admin.login');
 });
 
 require __DIR__ . '/settings.php';

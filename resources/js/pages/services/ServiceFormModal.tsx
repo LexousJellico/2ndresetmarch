@@ -1,208 +1,291 @@
-import { useEffect } from "react";
+import { useEffect } from 'react';
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Label } from "@/components/ui/label";
-import { useForm } from "@inertiajs/react";
-import type { Service, ServiceTypeOption } from "@/types";
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+} from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from '@/components/ui/select';
+import { Label } from '@/components/ui/label';
+import { useForm } from '@inertiajs/react';
+import type { Service, ServiceTypeOption } from '@/types';
 
 export type ServicePayload = {
-  service_type_id: number | string | null;
-  name: string;
-  description: string;
-  uom: string;
-  price: number | string;
-  quantity: number | string;
+    service_type_id: number | string | null;
+    name: string;
+    description: string;
+    uom: string;
+    price: number | string;
+    quantity: number | string;
+    min_guests: number | string;
+    max_guests: number | string;
+    capacity_note: string;
 };
 
 interface ServiceFormModalProps {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-  mode: "create" | "edit";
-  service?: Partial<Service> | null;
-  serviceTypes: ServiceTypeOption[];
+    open: boolean;
+    onOpenChange: (open: boolean) => void;
+    mode: 'create' | 'edit';
+    service?: Partial<Service> | null;
+    serviceTypes: ServiceTypeOption[];
 }
 
-export default function ServiceFormModal({ open, onOpenChange, mode, service, serviceTypes }: ServiceFormModalProps) {
-  const isEdit = mode === "edit";
+export default function ServiceFormModal({
+    open,
+    onOpenChange,
+    mode,
+    service,
+    serviceTypes,
+}: ServiceFormModalProps) {
+    const isEdit = mode === 'edit';
 
-  const { data, setData, post, put, processing, errors, reset, clearErrors, transform } = useForm<ServicePayload>({
-    service_type_id: "",
-    name: "",
-    description: "",
-    uom: "",
-    price: "",
-    quantity: "",
-  });
+    const { data, setData, post, put, processing, errors, reset, clearErrors, transform } = useForm({
+        service_type_id: '',
+        name: '',
+        description: '',
+        uom: '',
+        price: '',
+        quantity: '',
+        min_guests: '',
+        max_guests: '',
+        capacity_note: '',
+    });
 
-  // Hydrate form when editing
-  useEffect(() => {
-    if (isEdit && service) {
-      setData({
-        service_type_id: service.service_type_id ?? "",
-        name: service.name ?? "",
-        description: service.description ?? "",
-        uom: service.uom ?? "",
-        price: service.price ?? "",
-        quantity: service.quantity ?? "",
-      });
-      clearErrors();
-    } else if (!isEdit) {
-      reset();
-      clearErrors();
+    useEffect(() => {
+        if (isEdit && service) {
+            setData({
+                service_type_id: service.service_type_id ?? '',
+                name: service.name ?? '',
+                description: service.description ?? '',
+                uom: service.uom ?? '',
+                price: service.price ?? '',
+                quantity: service.quantity ?? '',
+                min_guests: service.min_guests ?? '',
+                max_guests: service.max_guests ?? '',
+                capacity_note: service.capacity_note ?? '',
+            });
+            clearErrors();
+        } else if (!isEdit) {
+            reset();
+            clearErrors();
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [isEdit, service, open]);
+
+    function onSubmit(e: React.FormEvent) {
+        e.preventDefault();
+
+        const applyTransform = () => ({
+            ...data,
+            service_type_id: data.service_type_id === '' ? null : Number(data.service_type_id),
+            price: data.price === '' ? '' : Number(data.price),
+            quantity: data.quantity === '' ? '' : Number(data.quantity),
+            min_guests: data.min_guests === '' ? null : Number(data.min_guests),
+            max_guests: data.max_guests === '' ? null : Number(data.max_guests),
+            capacity_note: data.capacity_note.trim() === '' ? null : data.capacity_note.trim(),
+        });
+
+        if (isEdit && service?.id) {
+            transform(applyTransform);
+            put(`/services/${service.id}`, {
+                onSuccess: () => onOpenChange(false),
+            });
+        } else {
+            transform(applyTransform);
+            post('/services', {
+                onSuccess: () => {
+                    reset();
+                    onOpenChange(false);
+                },
+            });
+        }
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isEdit, service, open]);
 
-  function handleClose() {
-    onOpenChange(false);
-    // Don't reset immediately when closing edit so users don't lose values by accident
-  }
+    return (
+        <Dialog open={open} onOpenChange={onOpenChange}>
+            <DialogContent className="max-w-2xl">
+                <DialogHeader>
+                    <DialogTitle>{isEdit ? 'Edit service' : 'Create service'}</DialogTitle>
+                    <DialogDescription>
+                        {isEdit
+                            ? 'Update the service details and optional guest-capacity limits.'
+                            : 'Add a new service to your catalog with optional guest-capacity limits.'}
+                    </DialogDescription>
+                </DialogHeader>
 
-  function onSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    // Convert numeric fields for submission
-    const applyTransform = () =>
-      ({
-        ...data,
-        service_type_id: data.service_type_id === "" ? null : Number(data.service_type_id),
-        price: data.price === "" ? "" : Number(data.price),
-        quantity: data.quantity === "" ? "" : Number(data.quantity),
-      });
+                <form onSubmit={onSubmit} className="space-y-5">
+                    <div className="grid gap-4 md:grid-cols-2">
+                        <div className="space-y-2">
+                            <Label>Service Type</Label>
+                            <Select
+                                value={String(data.service_type_id ?? '')}
+                                onValueChange={(value) => setData('service_type_id', value)}
+                            >
+                                <SelectTrigger>
+                                    <SelectValue placeholder="Select service type" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {Array.isArray(serviceTypes) &&
+                                        serviceTypes.map((t) => (
+                                            <SelectItem key={t.id} value={String(t.id)}>
+                                                {t.name}
+                                            </SelectItem>
+                                        ))}
+                                </SelectContent>
+                            </Select>
+                            {errors.service_type_id && (
+                                <p className="text-sm text-red-600">{errors.service_type_id}</p>
+                            )}
+                        </div>
 
-    if (isEdit && service?.id) {
-      transform(applyTransform);
-      put(`/services/${service.id}`, {
-        onSuccess: () => {
-          onOpenChange(false);
-        },
-      });
-    } else {
-      transform(applyTransform);
-      post(`/services`, {
-        onSuccess: () => {
-          reset();
-          onOpenChange(false);
-        },
-      });
-    }
-  }
+                        <div className="space-y-2">
+                            <Label>Name</Label>
+                            <Input
+                                value={data.name}
+                                onChange={(e) => setData('name', e.target.value)}
+                                placeholder="e.g., Board Room"
+                                required
+                            />
+                            {errors.name && <p className="text-sm text-red-600">{errors.name}</p>}
+                        </div>
+                    </div>
 
-  return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent>
-        <form onSubmit={onSubmit} className="grid gap-4">
-          <DialogHeader>
-            <DialogTitle>{isEdit ? "Edit service" : "Create service"}</DialogTitle>
-            <DialogDescription>
-              {isEdit ? "Update the service details." : "Add a new service to your catalog."}
-            </DialogDescription>
-          </DialogHeader>
+                    <div className="space-y-2">
+                        <Label>Description</Label>
+                        <textarea
+                            value={data.description}
+                            onChange={(e) => setData('description', e.target.value)}
+                            placeholder="Short description"
+                            rows={4}
+                            className="w-full rounded-md border bg-background px-3 py-2 text-sm"
+                            required
+                        />
+                        {errors.description && (
+                            <p className="text-sm text-red-600">{errors.description}</p>
+                        )}
+                    </div>
 
-          <div className="grid gap-2">
-            <Label htmlFor="service_type_id">Service Type</Label>
-            <Select
-              value={String(data.service_type_id ?? "")}
-              onValueChange={(value) => setData("service_type_id", value)}
-            >
-              <SelectTrigger id="service_type_id" aria-invalid={!!errors.service_type_id}>
-                <SelectValue placeholder="Select a type (optional)" />
-              </SelectTrigger>
-              <SelectContent>
-                {Array.isArray(serviceTypes) && serviceTypes.map((t) => (
-                  <SelectItem key={t.id} value={String(t.id)}>
-                    {t.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            {errors.service_type_id && <p className="text-destructive text-sm">{errors.service_type_id}</p>}
-          </div>
+                    <div className="grid gap-4 md:grid-cols-3">
+                        <div className="space-y-2">
+                            <Label>Unit of Measure</Label>
+                            <Input
+                                value={data.uom}
+                                onChange={(e) => setData('uom', e.target.value)}
+                                placeholder="e.g., item"
+                                required
+                            />
+                            {errors.uom && <p className="text-sm text-red-600">{errors.uom}</p>}
+                        </div>
 
-          <div className="grid gap-2">
-            <Label htmlFor="name">Name</Label>
-            <Input
-              id="name"
-              value={data.name}
-              onChange={(e) => setData("name", e.target.value)}
-              placeholder="e.g., Event Photography"
-              required
-            />
-            {errors.name && <p className="text-destructive text-sm">{errors.name}</p>}
-          </div>
+                        <div className="space-y-2">
+                            <Label>Price</Label>
+                            <Input
+                                type="number"
+                                min="0"
+                                step="0.01"
+                                value={data.price}
+                                onChange={(e) => setData('price', e.target.value)}
+                                placeholder="0.00"
+                                required
+                            />
+                            {errors.price && <p className="text-sm text-red-600">{errors.price}</p>}
+                        </div>
 
-          <div className="grid gap-2">
-            <Label htmlFor="description">Description</Label>
-            <Input
-              id="description"
-              value={data.description}
-              onChange={(e) => setData("description", e.target.value)}
-              placeholder="Short description"
-              required
-            />
-            {errors.description && <p className="text-destructive text-sm">{errors.description}</p>}
-          </div>
+                        <div className="space-y-2">
+                            <Label>Stock / Quantity</Label>
+                            <Input
+                                type="number"
+                                min="0"
+                                value={data.quantity}
+                                onChange={(e) => setData('quantity', e.target.value)}
+                                placeholder="0"
+                                required
+                            />
+                            {errors.quantity && (
+                                <p className="text-sm text-red-600">{errors.quantity}</p>
+                            )}
+                        </div>
+                    </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <div className="grid gap-2">
-              <Label htmlFor="uom">Unit of Measure</Label>
-              <Input
-                id="uom"
-                value={data.uom}
-                onChange={(e) => setData("uom", e.target.value)}
-                placeholder="e.g., hour, item"
-                required
-              />
-              {errors.uom && <p className="text-destructive text-sm">{errors.uom}</p>}
-            </div>
-            <div className="grid gap-2">
-              <Label htmlFor="price">Price</Label>
-              <Input
-                id="price"
-                type="number"
-                min={0}
-                step="0.01"
-                value={data.price}
-                onChange={(e) => setData("price", e.target.value)}
-                placeholder="0.00"
-                required
-              />
-              {errors.price && <p className="text-destructive text-sm">{errors.price}</p>}
-            </div>
-            <div className="grid gap-2">
-              <Label htmlFor="quantity">Quantity</Label>
-              <Input
-                id="quantity"
-                type="number"
-                min={0}
-                step="1"
-                value={data.quantity}
-                onChange={(e) => setData("quantity", e.target.value)}
-                placeholder="0"
-                required
-              />
-              {errors.quantity && <p className="text-destructive text-sm">{errors.quantity}</p>}
-            </div>
-          </div>
+                    <div className="rounded-xl border p-4">
+                        <div className="mb-3">
+                            <p className="font-semibold">Guest Capacity Rule</p>
+                            <p className="text-sm text-muted-foreground">
+                                Use this when a service or room can only support a certain number of guests.
+                            </p>
+                        </div>
 
-          <DialogFooter>
-            <Button type="button" variant="outline" onClick={handleClose} disabled={processing}>
-              Cancel
-            </Button>
-            <Button type="submit" disabled={processing}>
-              {processing ? (isEdit ? "Saving..." : "Creating...") : isEdit ? "Save changes" : "Create"}
-            </Button>
-          </DialogFooter>
-        </form>
-      </DialogContent>
-    </Dialog>
-  );
+                        <div className="grid gap-4 md:grid-cols-2">
+                            <div className="space-y-2">
+                                <Label>Minimum Guests</Label>
+                                <Input
+                                    type="number"
+                                    min="0"
+                                    value={data.min_guests}
+                                    onChange={(e) => setData('min_guests', e.target.value)}
+                                    placeholder="Optional"
+                                />
+                                {errors.min_guests && (
+                                    <p className="text-sm text-red-600">{errors.min_guests}</p>
+                                )}
+                            </div>
+
+                            <div className="space-y-2">
+                                <Label>Maximum Guests</Label>
+                                <Input
+                                    type="number"
+                                    min="0"
+                                    value={data.max_guests}
+                                    onChange={(e) => setData('max_guests', e.target.value)}
+                                    placeholder="Optional"
+                                />
+                                {errors.max_guests && (
+                                    <p className="text-sm text-red-600">{errors.max_guests}</p>
+                                )}
+                            </div>
+                        </div>
+
+                        <div className="mt-4 space-y-2">
+                            <Label>Capacity Note</Label>
+                            <textarea
+                                value={data.capacity_note}
+                                onChange={(e) => setData('capacity_note', e.target.value)}
+                                placeholder="Optional guidance, e.g. Best for 10–30 guests only."
+                                rows={3}
+                                className="w-full rounded-md border bg-background px-3 py-2 text-sm"
+                            />
+                            {errors.capacity_note && (
+                                <p className="text-sm text-red-600">{errors.capacity_note}</p>
+                            )}
+                        </div>
+                    </div>
+
+                    <DialogFooter>
+                        <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+                            Cancel
+                        </Button>
+                        <Button type="submit" disabled={processing}>
+                            {processing
+                                ? isEdit
+                                    ? 'Saving...'
+                                    : 'Creating...'
+                                : isEdit
+                                  ? 'Save changes'
+                                  : 'Create'}
+                        </Button>
+                    </DialogFooter>
+                </form>
+            </DialogContent>
+        </Dialog>
+    );
 }

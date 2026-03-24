@@ -2,7 +2,7 @@ import type { ReactNode } from 'react';
 import { useEffect, useState } from 'react';
 import { Link, router, usePage } from '@inertiajs/react';
 import { CalendarDays, Home, LayoutGrid, LogOut, Mail, Menu, ShieldCheck, X } from 'lucide-react';
-
+import ConfirmActionDialog from '@/components/confirm-action-dialog';
 import ConfigDropdown from '@/components/admin/config-dropdown';
 
 type AdminLayoutProps = {
@@ -31,6 +31,9 @@ const navItems = [
     { label: 'Contact Us', href: '#footer-config', icon: Mail },
 ];
 
+const [confirmLogoutOpen, setConfirmLogoutOpen] = useState(false);
+const [logoutProcessing, setLogoutProcessing] = useState(false);
+
 export default function AdminLayout({ children, title, subtitle }: AdminLayoutProps) {
     const page = usePage<SharedProps>();
     const user = page.props.auth?.user;
@@ -49,8 +52,16 @@ export default function AdminLayout({ children, title, subtitle }: AdminLayoutPr
     }, [mobileOpen]);
 
     const handleLogout = () => {
-        router.post('/logout');
-    };
+    setLogoutProcessing(true);
+
+    router.post('/logout', undefined, {
+        onFinish: () => {
+            setLogoutProcessing(false);
+            setConfirmLogoutOpen(false);
+        },
+    });
+};
+
 
     return (
         <div className="min-h-screen bg-[#f5f1e8] text-[#1f1f1c] dark:bg-[#101114] dark:text-white">
@@ -96,7 +107,7 @@ export default function AdminLayout({ children, title, subtitle }: AdminLayoutPr
 
                         <button
                             type="button"
-                            onClick={handleLogout}
+                            onClick={() => setConfirmLogoutOpen(true)}
                             className="inline-flex items-center gap-2 rounded-full bg-[#174f40] px-5 py-3 text-sm font-semibold text-white dark:bg-[#2d47ff]"
                         >
                             <LogOut className="h-4 w-4" />
@@ -132,7 +143,11 @@ export default function AdminLayout({ children, title, subtitle }: AdminLayoutPr
 
                             <button
                                 type="button"
-                                onClick={() => setMobileOpen(false)}
+                                onClick={() => {
+                                setMobileOpen(false);
+                                setConfirmLogoutOpen(true);
+                            }}
+
                                 className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-black/10 bg-white dark:border-white/10 dark:bg-[#17181c]"
                             >
                                 <X className="h-5 w-5" />
@@ -197,6 +212,16 @@ export default function AdminLayout({ children, title, subtitle }: AdminLayoutPr
 
                 {children}
             </main>
+            <ConfirmActionDialog
+                open={confirmLogoutOpen}
+                onOpenChange={setConfirmLogoutOpen}
+                title="Log out of the admin console?"
+                description="You are about to end your current admin session. Unsaved changes on the page may be lost."
+                confirmLabel="Log out"
+                cancelLabel="Stay here"
+                onConfirm={handleLogout}
+                processing={logoutProcessing}
+            />
         </div>
     );
 }

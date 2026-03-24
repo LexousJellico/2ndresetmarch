@@ -1,202 +1,94 @@
-import type { ReactNode } from 'react';
-import { useEffect, useState } from 'react';
-import { Link, router, usePage } from '@inertiajs/react';
-import { CalendarDays, Home, LayoutGrid, LogOut, Mail, Menu, ShieldCheck, X } from 'lucide-react';
-
-import ConfigDropdown from '@/components/admin/config-dropdown';
-
-type AdminLayoutProps = {
-    children: ReactNode;
-    title?: string;
-    subtitle?: string;
-};
+import type { PropsWithChildren } from 'react';
+import { Link, usePage } from '@inertiajs/react';
+import { LayoutDashboard, LogOut, PanelsTopLeft } from 'lucide-react';
 
 type AuthUser = {
-    name?: string | null;
-    email?: string | null;
+  name?: string;
+  email?: string;
 };
 
-type SharedProps = {
-    auth?: {
-        user?: AuthUser | null;
-    };
+type PageProps = {
+  auth?: {
+    user?: AuthUser;
+  };
 };
 
 const navItems = [
-    { label: 'Home', href: '/admin/home', icon: Home },
-    { label: 'Facilities', href: '#spaces-config', icon: LayoutGrid },
-    { label: 'Events', href: '#events-config', icon: CalendarDays },
-    { label: 'Calendar', href: '#calendar-config', icon: CalendarDays },
-    { label: 'Tourism Office', href: '#homepage-config', icon: ShieldCheck },
-    { label: 'Contact Us', href: '#footer-config', icon: Mail },
+  {
+    label: 'Config Console',
+    href: '/admin/home',
+    icon: PanelsTopLeft,
+  },
+  {
+    label: 'Dashboard',
+    href: '/dashboard',
+    icon: LayoutDashboard,
+  },
 ];
 
-export default function AdminLayout({ children, title, subtitle }: AdminLayoutProps) {
-    const page = usePage<SharedProps>();
-    const user = page.props.auth?.user;
-    const [mobileOpen, setMobileOpen] = useState(false);
+export default function AdminLayout({ children }: PropsWithChildren) {
+  const page = usePage<PageProps>();
+  const user = page.props.auth?.user;
+  const currentUrl = page.url;
 
-    useEffect(() => {
-        const previous = document.body.style.overflow;
+  return (
+    <div className="min-h-screen bg-[#f6f4ee] text-[#22221f] dark:bg-[#0f1014] dark:text-white">
+      <header className="sticky top-0 z-40 border-b border-black/5 bg-white/90 backdrop-blur dark:border-white/10 dark:bg-[#121318]/90">
+        <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-4 sm:px-6 lg:px-8">
+          <div>
+            <div className="text-xs font-semibold uppercase tracking-[0.34em] text-[#174f40] dark:text-[#8ea3ff]">
+              AD
+            </div>
+            <div className="mt-1 text-xl font-semibold">BCCC Admin</div>
+            <div className="text-sm text-slate-500 dark:text-slate-300">
+              Frontend Config Console
+            </div>
+          </div>
 
-        if (mobileOpen) {
-            document.body.style.overflow = 'hidden';
-        }
+          <nav className="hidden items-center gap-3 md:flex">
+            {navItems.map((item) => {
+              const Icon = item.icon;
+              const active = currentUrl.startsWith(item.href);
 
-        return () => {
-            document.body.style.overflow = previous;
-        };
-    }, [mobileOpen]);
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  className={`inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-semibold transition ${
+                    active
+                      ? 'bg-[#174f40] text-white dark:bg-[#2d47ff]'
+                      : 'border border-black/10 bg-white text-[#1f1f1c] hover:bg-slate-50 dark:border-white/10 dark:bg-[#17181c] dark:text-white dark:hover:bg-white/10'
+                  }`}
+                >
+                  <Icon className="h-4 w-4" />
+                  {item.label}
+                </Link>
+              );
+            })}
+          </nav>
 
-    const handleLogout = () => {
-        router.post('/logout');
-    };
+          <div className="flex items-center gap-3">
+            <div className="hidden text-right sm:block">
+              <div className="text-sm font-semibold">{user?.name ?? 'Admin User'}</div>
+              <div className="text-xs text-slate-500 dark:text-slate-300">
+                {user?.email ?? 'Authenticated Session'}
+              </div>
+            </div>
 
-    return (
-        <div className="min-h-screen bg-[#f5f1e8] text-[#1f1f1c] dark:bg-[#101114] dark:text-white">
-            <div className="pointer-events-none fixed inset-x-0 top-0 -z-10 h-[30rem] bg-gradient-to-b from-[#d9ebe0] via-[#f5f1e8] to-transparent dark:from-[#162230] dark:via-[#101114] dark:to-transparent" />
-
-            <header className="sticky top-0 z-50 border-b border-black/10 bg-[#f5f1e8]/92 backdrop-blur dark:border-white/10 dark:bg-[#101114]/92">
-                <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-3 lg:px-6">
-                    <div className="flex items-center gap-3">
-                        <Link href="/admin/home" className="flex items-center gap-3">
-                            <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[#174f40] text-sm font-black text-white dark:bg-[#2d47ff]">
-                                AD
-                            </div>
-
-                            <div>
-                                <p className="text-sm font-black uppercase tracking-[0.18em] text-[#174f40] dark:text-[#9dc0ff]">
-                                    BCCC Admin
-                                </p>
-                                <p className="text-xs text-[#5f5c56] dark:text-[#c0c0c8]">
-                                    Frontend Config Console
-                                </p>
-                            </div>
-                        </Link>
-                    </div>
-
-                    <nav className="hidden items-center gap-1 xl:flex">
-                        {navItems.map((item) => (
-                            <a
-                                key={item.label}
-                                href={item.href}
-                                className="rounded-full px-4 py-2 text-sm font-semibold text-[#24241f] transition hover:bg-black/5 dark:text-white dark:hover:bg-white/10"
-                            >
-                                {item.label}
-                            </a>
-                        ))}
-
-                        <ConfigDropdown />
-                    </nav>
-
-                    <div className="hidden items-center gap-3 xl:flex">
-                        <div className="rounded-full border border-black/10 bg-white px-4 py-2 text-sm dark:border-white/10 dark:bg-[#17181c]">
-                            <span className="font-semibold">{user?.name ?? 'Admin User'}</span>
-                        </div>
-
-                        <button
-                            type="button"
-                            onClick={handleLogout}
-                            className="inline-flex items-center gap-2 rounded-full bg-[#174f40] px-5 py-3 text-sm font-semibold text-white dark:bg-[#2d47ff]"
-                        >
-                            <LogOut className="h-4 w-4" />
-                            Logout
-                        </button>
-                    </div>
-
-                    <button
-                        type="button"
-                        onClick={() => setMobileOpen((prev) => !prev)}
-                        className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-black/10 bg-white text-[#1f1f1c] xl:hidden dark:border-white/10 dark:bg-[#17181c] dark:text-white"
-                        aria-label="Toggle admin menu"
-                    >
-                        {mobileOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
-                    </button>
-                </div>
-            </header>
-
-            {mobileOpen && (
-                <div className="fixed inset-0 z-[60] xl:hidden">
-                    <div className="absolute inset-0 bg-black/50" onClick={() => setMobileOpen(false)} />
-
-                    <div className="absolute right-0 top-0 h-full w-full max-w-sm overflow-y-auto bg-[#f5f1e8] p-5 dark:bg-[#111216]">
-                        <div className="mb-6 flex items-center justify-between">
-                            <div>
-                                <p className="text-sm font-black uppercase tracking-[0.18em] text-[#174f40] dark:text-[#9dc0ff]">
-                                    BCCC Admin
-                                </p>
-                                <p className="text-xs text-[#5f5c56] dark:text-[#c0c0c8]">
-                                    Navigation
-                                </p>
-                            </div>
-
-                            <button
-                                type="button"
-                                onClick={() => setMobileOpen(false)}
-                                className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-black/10 bg-white dark:border-white/10 dark:bg-[#17181c]"
-                            >
-                                <X className="h-5 w-5" />
-                            </button>
-                        </div>
-
-                        <div className="space-y-2">
-                            {navItems.map((item) => (
-                                <a
-                                    key={item.label}
-                                    href={item.href}
-                                    onClick={() => setMobileOpen(false)}
-                                    className="block rounded-2xl bg-white px-4 py-3 text-sm font-semibold text-[#1f1f1c] dark:bg-[#17181c] dark:text-white"
-                                >
-                                    {item.label}
-                                </a>
-                            ))}
-
-                            <a
-                                href="#events-config"
-                                onClick={() => setMobileOpen(false)}
-                                className="block rounded-2xl bg-[#174f40] px-4 py-3 text-sm font-semibold text-white dark:bg-[#2d47ff]"
-                            >
-                                Config
-                            </a>
-                        </div>
-
-                        <div className="mt-6 rounded-3xl border border-black/10 bg-white p-4 dark:border-white/10 dark:bg-[#17181c]">
-                            <p className="text-sm font-bold">{user?.name ?? 'Admin User'}</p>
-                            <p className="mt-1 text-xs text-[#66625c] dark:text-[#c0c0c8]">
-                                Logged in administrator
-                            </p>
-
-                            <button
-                                type="button"
-                                onClick={handleLogout}
-                                className="mt-4 inline-flex w-full items-center justify-center rounded-full bg-[#174f40] px-5 py-3 text-sm font-semibold text-white dark:bg-[#2d47ff]"
-                            >
-                                Logout
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            )}
-
-            <main className="mx-auto max-w-7xl px-4 py-8 lg:px-6">
-                {(title || subtitle) && (
-                    <section className="mb-6 rounded-[2rem] border border-black/10 bg-white p-6 shadow-sm dark:border-white/10 dark:bg-[#16171b]">
-                        {title && (
-                            <p className="text-xs font-black uppercase tracking-[0.18em] text-[#174f40] dark:text-[#9dc0ff]">
-                                Admin Home
-                            </p>
-                        )}
-                        {title && <h1 className="mt-3 text-3xl font-black tracking-tight sm:text-4xl">{title}</h1>}
-                        {subtitle && (
-                            <p className="mt-3 max-w-4xl text-sm leading-7 text-[#595651] dark:text-[#c8c8ce]">
-                                {subtitle}
-                            </p>
-                        )}
-                    </section>
-                )}
-
-                {children}
-            </main>
+            <Link
+              href="/logout"
+              method="post"
+              as="button"
+              className="inline-flex items-center gap-2 rounded-full border border-black/10 bg-white px-4 py-2 text-sm font-semibold text-[#1f1f1c] transition hover:bg-slate-50 dark:border-white/10 dark:bg-[#17181c] dark:text-white dark:hover:bg-white/10"
+            >
+              <LogOut className="h-4 w-4" />
+              Logout
+            </Link>
+          </div>
         </div>
-    );
+      </header>
+
+      <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">{children}</main>
+    </div>
+  );
 }

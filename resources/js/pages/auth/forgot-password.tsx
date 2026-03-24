@@ -1,69 +1,63 @@
-// Components
-import PasswordResetLinkController from '@/actions/App/Http/Controllers/Auth/PasswordResetLinkController';
-import { login } from '@/routes';
-import { Form, Head } from '@inertiajs/react';
+import { FormEvent } from 'react';
+import { Head, Link, useForm } from '@inertiajs/react';
 import { LoaderCircle } from 'lucide-react';
-
 import InputError from '@/components/input-error';
-import TextLink from '@/components/text-link';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import AuthLayout from '@/layouts/auth-layout';
 
 export default function ForgotPassword({ status }: { status?: string }) {
-    return (
-        <AuthLayout
-            title="Forgot password"
-            description="Enter your email to receive a password reset link"
-        >
-            <Head title="Forgot password" />
+  const { data, setData, post, processing, errors } = useForm({
+    email: '',
+  });
 
-            {status && (
-                <div className="mb-4 text-center text-sm font-medium text-green-600">
-                    {status}
-                </div>
-            )}
+  const submit = (e: FormEvent) => {
+    e.preventDefault();
+    post('/forgot-password');
+  };
 
-            <div className="space-y-6">
-                <Form {...PasswordResetLinkController.store.form()}>
-                    {({ processing, errors }) => (
-                        <>
-                            <div className="grid gap-2">
-                                <Label htmlFor="email">Email address</Label>
-                                <Input
-                                    id="email"
-                                    type="email"
-                                    name="email"
-                                    autoComplete="off"
-                                    autoFocus
-                                    placeholder="email@example.com"
-                                />
+  return (
+    <AuthLayout
+      title="Forgot password"
+      description="Enter your email and we will send you a password reset link if the account exists."
+    >
+      <Head title="Forgot password" />
 
-                                <InputError message={errors.email} />
-                            </div>
+      {status && (
+        <div className="mb-4 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800 dark:border-emerald-400/20 dark:bg-emerald-500/10 dark:text-emerald-200">
+          {status}
+        </div>
+      )}
 
-                            <div className="my-6 flex items-center justify-start">
-                                <Button
-                                    className="w-full"
-                                    disabled={processing}
-                                    data-test="email-password-reset-link-button"
-                                >
-                                    {processing && (
-                                        <LoaderCircle className="h-4 w-4 animate-spin" />
-                                    )}
-                                    Email password reset link
-                                </Button>
-                            </div>
-                        </>
-                    )}
-                </Form>
+      <form onSubmit={submit} className="flex flex-col gap-6">
+        <div className="grid gap-2">
+          <Label htmlFor="email">Email address</Label>
+          <Input
+            id="email"
+            type="email"
+            required
+            autoFocus
+            autoComplete="email"
+            placeholder="email@example.com"
+            value={data.email}
+            onChange={(e) => setData('email', e.target.value)}
+          />
+          <InputError message={errors.email} className="mt-2" />
+        </div>
 
-                <div className="space-x-1 text-center text-sm text-muted-foreground">
-                    <span>Or, return to</span>
-                    <TextLink href={login()}>log in</TextLink>
-                </div>
-            </div>
-        </AuthLayout>
-    );
+        <Button type="submit" className="w-full" disabled={processing}>
+          {processing && <LoaderCircle className="h-4 w-4 animate-spin" />}
+          Email password reset link
+        </Button>
+
+        <div className="text-center text-sm text-muted-foreground">
+          Or, return to{' '}
+          <Link href="/login" className="underline underline-offset-4">
+            log in
+          </Link>
+        </div>
+      </form>
+    </AuthLayout>
+  );
 }

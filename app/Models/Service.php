@@ -2,19 +2,14 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Service extends Model
 {
-
-    use HasFactory;
-    
     protected $table = 'services';
 
     /**
-     * The attributes that are mass assignable.
-     *
      * @var list<string>
      */
     protected $fillable = [
@@ -24,9 +19,19 @@ class Service extends Model
         'uom',
         'price',
         'quantity',
+        'min_guests',
+        'max_guests',
+        'capacity_note',
     ];
 
-    public function serviceType()
+    protected $casts = [
+        'price' => 'decimal:2',
+        'quantity' => 'integer',
+        'min_guests' => 'integer',
+        'max_guests' => 'integer',
+    ];
+
+    public function serviceType(): BelongsTo
     {
         return $this->belongsTo(ServiceType::class);
     }
